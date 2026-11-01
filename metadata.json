@@ -1,0 +1,6 @@
+{
+  "name": "AlbkestrelOS",
+  "description": "AlbkestrelOS Launcher Phase 1 visual prototype inspired by Living Flow Design principles with luminous surfaces, fluid motion, flexible feedback, app drawer, folders, widgets, and customization.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
