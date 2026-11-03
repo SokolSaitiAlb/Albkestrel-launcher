@@ -31,6 +31,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import androidx.compose.ui.geometry.Offset
 
 sealed interface LauncherOverlay {
     object None : LauncherOverlay
@@ -39,6 +40,10 @@ sealed interface LauncherOverlay {
     object Settings : LauncherOverlay
     object PrototypeInfo : LauncherOverlay
     data class FolderExpanded(val folder: WorkspaceFolder) : LauncherOverlay
+    data class AppContextMenu(
+        val app: LauncherApp,
+        val anchorPosition: Offset
+    ) : LauncherOverlay
 }
 
 data class LauncherUiState(
@@ -208,11 +213,28 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
             _isLoadingApps.value = true
         }
         try {
-            _allApps.value = withContext(Dispatchers.IO) {
+            val installedApps = withContext(Dispatchers.IO) {
                 appRepository.loadAllApps()
             }
+            _allApps.value = installedApps
+            dismissContextMenuForMissingPackage(installedApps)
         } finally {
             _isLoadingApps.value = false
+        }
+    }
+
+    /**
+     * A package can disappear while its context menu is open (uninstall from the system UI,
+     * package replacement, multi-user changes). Close the menu instead of leaving a stale
+     * reference that could execute actions against an installed package's former identity.
+     */
+    private fun dismissContextMenuForMissingPackage(installedApps: List<LauncherApp>) {
+        val overlay = _activeOverlay.value as? LauncherOverlay.AppContextMenu ?: return
+        val stillInstalled = installedApps.any {
+            it.packageName == overlay.app.packageName && it.isInstalledApp
+        }
+        if (!stillInstalled) {
+            _activeOverlay.value = LauncherOverlay.None
         }
     }
 
@@ -313,6 +335,67 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         }
         // Apps without a launchable activity are intentionally a safe no-op. They never open the
         // old prototype preview dialog.
+    }
+
+    fun onAppLongPressed(app: LauncherApp, anchorPosition: Offset) {
+        if (!app.isInstalledApp) {
+            // Stale workspace references for removed packages never open a context menu.
+            return
+        }
+        triggerHapticFeedback(2)
+        _activeOverlay.value = LauncherOverlay.AppContextMenu(app, anchorPosition)
+    }
+
+    fun dismissAppContextMenu() {
+        val currentOverlay = _activeOverlay.value
+        if (currentOverlay is LauncherOverlay.AppContextMenu) {
+            _activeOverlay.value = LauncherOverlay.None
+        }
+    }
+
+    fun onContextMenuActionAppInfo(app: LauncherApp) {
+        triggerHapticFeedback(1)
+        if (app.isInstalledApp) {
+            appRepository.openAppDetails(app.packageName)
+        }
+        // Selecting any menu action completes the interaction. The system owns the details
+        // screen, so the launcher menu must not remain behind it.
+        dismissAppContextMenu()
+    }
+
+    fun onContextMenuActionPauseApp(app: LauncherApp) {
+        triggerHapticFeedback(1)
+        // Android Digital Wellbeing does not expose a public per-app pause API usable by a
+        // launcher process yet. The action is intentionally not surfaced while unsupported.
+    }
+
+    fun onContextMenuActionWidgets(app: LauncherApp) {
+        triggerHapticFeedback(1)
+        // Integration point for the future AppWidgetHost picker. AppContextMenuPolicy keeps this
+        // action hidden while no real widget host exists, so no placeholder UI is ever shown.
+    }
+
+    fun onContextMenuActionRemoveApp(app: LauncherApp) {
+        triggerHapticFeedback(2)
+        viewModelScope.launch {
+            workspaceRepository.removeAppFromWorkspace(app.packageName)
+        }
+        dismissAppContextMenu()
+    }
+
+    fun onContextMenuActionUninstallApp(app: LauncherApp) {
+        triggerHapticFeedback(2)
+        if (appRepository.uninstallApp(app.packageName)) {
+            dismissAppContextMenu()
+        }
+    }
+
+    fun onContextMenuActionLaunchShortcut(app: LauncherApp, shortcutId: String) {
+        triggerHapticFeedback(2)
+        viewModelScope.launch {
+            appRepository.launchShortcut(app, shortcutId)
+        }
+        dismissAppContextMenu()
     }
 
     fun toggleMediaPlayback() {

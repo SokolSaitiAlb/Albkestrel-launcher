@@ -454,6 +454,35 @@ class RoomWorkspaceRepository(
         }
     }
 
+    override suspend fun removeAppFromWorkspace(packageName: String): Boolean {
+        return database.withTransaction {
+            val items = workspaceDao.getAllItems()
+                .filter { it.packageName == packageName && it.itemType == "APP" }
+            val folderItems = folderDao.getAllFolderItems()
+                .filter { it.packageName == packageName }
+
+            if (items.isEmpty() && folderItems.isEmpty()) {
+                return@withTransaction false
+            }
+
+            items.forEach { item -> workspaceDao.deleteItemById(item.id) }
+            if (folderItems.isNotEmpty()) {
+                folderDao.deleteFolderItemsByPackageNames(listOf(packageName))
+            }
+
+            // Clean up folders that were left empty. The underlying Android package is never uninstalled.
+            val affectedFolderIds = folderItems.map { it.folderId }.toSet()
+            affectedFolderIds.forEach { folderId ->
+                if (folderDao.getFolderItems(folderId).isEmpty()) {
+                    workspaceDao.deleteItemsByFolderId(folderId)
+                    folderDao.deleteFolder(folderId)
+                }
+            }
+
+            true
+        }
+    }
+
     private companion object {
         /**
          * Exact package names that belonged to the Phase 1 mock suite. They are removed from

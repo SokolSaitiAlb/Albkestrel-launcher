@@ -6,9 +6,7 @@ import androidx.compose.animation.core.spring
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -45,18 +43,28 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.LayoutCoordinates
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.onClick
+import androidx.compose.ui.semantics.onLongClick
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -75,10 +83,11 @@ fun LivingAppIcon(
     labelColor: Color = Color.White,
     animationSpeed: AnimationSpeed = AnimationSpeed.FLUID_SPRING,
     isDimmed: Boolean = false,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    onLongPress: ((LauncherApp, Offset) -> Unit)? = null
 ) {
-    val interactionSource = remember { MutableInteractionSource() }
-    val isPressed by interactionSource.collectIsPressedAsState()
+    var isPressed by remember { mutableStateOf(false) }
+    var iconCoordinates by remember { mutableStateOf<LayoutCoordinates?>(null) }
 
     val scale by animateFloatAsState(
         targetValue = if (isPressed) 0.90f else 1.0f,
@@ -102,14 +111,57 @@ fun LivingAppIcon(
     val cornerRadius = iconSize * 0.28f
     val iconShape = RoundedCornerShape(cornerRadius)
 
+    // TalkBack and switch access cannot perform raw taps or long presses. Expose both actions
+    // through semantics while keeping the touch gesture handling below as the pointer-input path.
+    // The long-press action is anchored to the icon centre so the menu opens predictably.
+    val clickHandler = onClick
+    val longPressHandler = onLongPress
+    val accessibilitySemantics = Modifier.semantics {
+        onClick(label = "Open ${app.name}") {
+            clickHandler()
+            true
+        }
+        if (longPressHandler != null) {
+            onLongClick(label = "Open app menu") {
+                val coordinates = iconCoordinates
+                val anchor = if (coordinates != null) {
+                    coordinates.positionInWindow() +
+                        Offset(coordinates.size.width / 2f, coordinates.size.height / 2f)
+                } else {
+                    Offset.Zero
+                }
+                longPressHandler(app, anchor)
+                true
+            }
+        }
+    }
+
     Column(
         modifier = modifier
             .testTag("app_icon_${app.id}")
-            .clickable(
-                interactionSource = interactionSource,
-                indication = null,
-                onClick = onClick
-            )
+            .onGloballyPositioned { iconCoordinates = it }
+            .then(accessibilitySemantics)
+            .pointerInput(app.id) {
+                detectTapGestures(
+                    onLongPress = { offset ->
+                        isPressed = false
+                        val windowPos = iconCoordinates?.positionInWindow() ?: Offset.Zero
+                        longPressHandler?.invoke(app, windowPos + offset)
+                    },
+                    onTap = { _ ->
+                        isPressed = false
+                        clickHandler()
+                    },
+                    onPress = {
+                        isPressed = true
+                        try {
+                            tryAwaitRelease()
+                        } finally {
+                            isPressed = false
+                        }
+                    }
+                )
+            }
             .scale(scale),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {

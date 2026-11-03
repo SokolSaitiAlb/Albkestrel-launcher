@@ -23,6 +23,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
@@ -42,7 +43,8 @@ fun LuminousDock(
     animationSpeed: AnimationSpeed,
     modifier: Modifier = Modifier,
     onAppClick: (LauncherApp) -> Unit,
-    onOpenDrawer: () -> Unit
+    onOpenDrawer: () -> Unit,
+    onAppLongPress: (LauncherApp, Offset) -> Unit = { _, _ -> }
 ) {
     Column(
         modifier = modifier
@@ -104,7 +106,10 @@ fun LuminousDock(
                             labelColor = Color.White,
                             animationSpeed = animationSpeed,
                             isDimmed = !item.isInstalled,
-                            onClick = { onAppClick(app) }
+                            onClick = { onAppClick(app) },
+                            onLongPress = { pressedApp, anchorPosition ->
+                                onAppLongPress(pressedApp, anchorPosition)
+                            }
                         )
                     }
                 }

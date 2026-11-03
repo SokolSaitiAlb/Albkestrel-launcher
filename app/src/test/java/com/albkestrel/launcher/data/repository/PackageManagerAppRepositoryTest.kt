@@ -1,8 +1,12 @@
 package com.albkestrel.launcher.data.repository
 
+import android.app.Application
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.content.pm.ActivityInfo
+import android.content.pm.ApplicationInfo
+import android.content.pm.ResolveInfo
 import android.net.Uri
 import android.os.Looper
 import androidx.test.core.app.ApplicationProvider
@@ -93,5 +97,83 @@ class PackageManagerAppRepositoryTest {
 
         assertNull(repository.buildLaunchIntent(app))
         assertFalse(repository.launchApp(app))
+    }
+
+    @Test
+    fun `openAppDetails returns false for uninstalled app`() {
+        assertFalse(repository.openAppDetails("com.nonexistent.app"))
+    }
+
+    @Test
+    fun `uninstallApp returns false for uninstalled app`() {
+        assertFalse(repository.uninstallApp("com.nonexistent.app"))
+    }
+
+    @Test
+    fun `uninstallApp refuses system packages even when they are installed`() {
+        installLauncherPackage("com.example.system", isSystem = true)
+
+        assertFalse(repository.uninstallApp("com.example.system"))
+    }
+
+    @Test
+    fun `uninstallApp initiates the official delete flow for user packages`() {
+        installLauncherPackage("com.example.user", isSystem = false)
+
+        assertTrue(repository.uninstallApp("com.example.user"))
+
+        val started = shadowOf(context as Application).nextStartedActivity
+        assertEquals(Intent.ACTION_DELETE, started?.action)
+        assertEquals("package:com.example.user", started?.dataString)
+    }
+
+    @Test
+    fun `getShortcutsForPackage returns empty list when shortcuts are unavailable`() {
+        val shortcuts = repository.getShortcutsForPackage("com.example.app")
+        assertTrue(shortcuts.isEmpty())
+    }
+
+    @Test
+    fun `launchShortcut returns false when shortcut does not exist`() {
+        val app = LauncherApp(
+            id = "installed_com.example.app",
+            name = "Example",
+            packageName = "com.example.app",
+            isInstalledApp = true
+        )
+        assertFalse(repository.launchShortcut(app, "missing_shortcut_id"))
+    }
+
+    @Test
+    fun `launchShortcut rejects blank ids and uninstalled apps`() {
+        val app = LauncherApp(
+            id = "installed_com.example.app",
+            name = "Example",
+            packageName = "com.example.app",
+            isInstalledApp = true
+        )
+
+        assertFalse(repository.launchShortcut(app, ""))
+        assertFalse(repository.launchShortcut(app.copy(isInstalledApp = false), "valid_shortcut_id"))
+    }
+
+    private fun installLauncherPackage(packageName: String, isSystem: Boolean) {
+        val applicationInfo = ApplicationInfo().apply {
+            this.packageName = packageName
+            nonLocalizedLabel = packageName.substringAfterLast('.')
+            flags = if (isSystem) ApplicationInfo.FLAG_SYSTEM else 0
+        }
+        val activityInfo = ActivityInfo().apply {
+            this.packageName = packageName
+            name = "$packageName.MainActivity"
+            this.applicationInfo = applicationInfo
+        }
+        val resolveInfo = ResolveInfo().apply {
+            this.activityInfo = activityInfo
+        }
+        shadowOf(context.packageManager).addResolveInfoForIntent(
+            Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER),
+            resolveInfo
+        )
     }
 }

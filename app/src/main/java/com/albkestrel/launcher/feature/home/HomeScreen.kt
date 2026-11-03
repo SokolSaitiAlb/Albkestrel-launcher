@@ -275,6 +275,9 @@ fun HomeScreen(
                 onAppClick = { app -> viewModel.onAppClicked(app) },
                 onOpenDrawer = {
                     viewModel.setOverlay(LauncherOverlay.AppDrawer)
+                },
+                onAppLongPress = { pressedApp, anchorPosition ->
+                    viewModel.onAppLongPressed(pressedApp, anchorPosition)
                 }
             )
 
@@ -337,7 +340,10 @@ private fun WorkspaceMainPage(
                                         labelColor = Color.White,
                                         animationSpeed = uiState.settings.animationSpeed,
                                         isDimmed = !item.isInstalled,
-                                        onClick = { viewModel.onAppClicked(app) }
+                                        onClick = { viewModel.onAppClicked(app) },
+                                        onLongPress = { pressedApp, anchorPosition ->
+                                            viewModel.onAppLongPressed(pressedApp, anchorPosition)
+                                        }
                                     )
                                 }
                             }

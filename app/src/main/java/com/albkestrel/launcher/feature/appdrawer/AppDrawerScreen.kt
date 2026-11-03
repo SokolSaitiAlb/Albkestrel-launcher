@@ -290,6 +290,9 @@ fun AppDrawerScreen(
                                     animationSpeed = uiState.settings.animationSpeed,
                                     onClick = {
                                         viewModel.onAppClicked(app)
+                                    },
+                                    onLongPress = { pressedApp, anchorPosition ->
+                                        viewModel.onAppLongPressed(pressedApp, anchorPosition)
                                     }
                                 )
                             }

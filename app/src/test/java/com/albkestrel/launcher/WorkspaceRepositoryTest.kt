@@ -11,6 +11,7 @@ import com.albkestrel.launcher.data.database.entity.WorkspaceItemEntity
 import com.albkestrel.launcher.data.database.entity.WorkspaceMetadataEntity
 import com.albkestrel.launcher.data.database.entity.WorkspacePageEntity
 import com.albkestrel.launcher.data.repository.RoomWorkspaceRepository
+import com.albkestrel.launcher.domain.contextmenu.AppShortcut
 import com.albkestrel.launcher.domain.model.GridCoordinate
 import com.albkestrel.launcher.domain.model.LauncherApp
 import com.albkestrel.launcher.domain.model.WorkspaceItem
@@ -561,6 +562,65 @@ class WorkspaceRepositoryTest {
         context.deleteDatabase(dbName)
     }
 
+    @Test
+    fun `removeAppFromWorkspace removes top-level app from workspace`() = runBlocking {
+        workspaceRepository.initializeWorkspaceIfNeeded()
+
+        database.workspaceDao().insertItem(
+            WorkspaceItemEntity(
+                id = "item_to_remove",
+                itemType = "APP",
+                pageId = "page_0",
+                cellX = 0,
+                cellY = 1,
+                position = 10,
+                packageName = "com.test.removeme"
+            )
+        )
+
+        val removed = workspaceRepository.removeAppFromWorkspace("com.test.removeme")
+        assertTrue(removed)
+        assertTrue(database.workspaceDao().getAllItems().none { it.packageName == "com.test.removeme" })
+    }
+
+    @Test
+    fun `removeAppFromWorkspace removes app from folder and cleans up empty folder`() = runBlocking {
+        workspaceRepository.initializeWorkspaceIfNeeded()
+
+        val folderId = "f_temp"
+        database.folderDao().insertFolder(FolderEntity(folderId, "Temp Folder", 0xFF123456))
+        database.workspaceDao().insertItem(
+            WorkspaceItemEntity(
+                id = "ref_temp",
+                itemType = "FOLDER_REF",
+                pageId = "page_0",
+                cellX = 0,
+                cellY = 3,
+                position = 30,
+                folderId = folderId
+            )
+        )
+        database.folderDao().insertFolderItem(
+            FolderItemEntity("fi_temp_1", folderId, "com.test.folderapp", 0)
+        )
+
+        val removed = workspaceRepository.removeAppFromWorkspace("com.test.folderapp")
+        assertTrue(removed)
+        assertTrue(database.folderDao().getAllFolderItems().none { it.packageName == "com.test.folderapp" })
+        assertEquals(0, database.folderDao().getFolderItems(folderId).size)
+        assertTrue("Folder reference should be deleted when folder becomes empty",
+            database.workspaceDao().getAllItems().none { it.folderId == folderId }
+        )
+    }
+
+    @Test
+    fun `removeAppFromWorkspace returns false when app is not in workspace`() = runBlocking {
+        workspaceRepository.initializeWorkspaceIfNeeded()
+
+        val removed = workspaceRepository.removeAppFromWorkspace("com.nonexistent.app")
+        assertFalse(removed)
+    }
+
     private fun testApp(name: String, packageName: String): LauncherApp {
         return LauncherApp(
             id = "test_$packageName",
@@ -583,5 +643,13 @@ class WorkspaceRepositoryTest {
         override fun findAppByPackage(packageName: String): LauncherApp? {
             return apps.find { it.packageName == packageName }
         }
+
+        override fun openAppDetails(packageName: String): Boolean = true
+
+        override fun uninstallApp(packageName: String): Boolean = true
+
+        override fun getShortcutsForPackage(packageName: String): List<AppShortcut> = emptyList()
+
+        override fun launchShortcut(app: LauncherApp, shortcutId: String): Boolean = true
     }
 }

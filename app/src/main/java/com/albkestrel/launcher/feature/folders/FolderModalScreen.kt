@@ -212,6 +212,9 @@ fun FolderModalScreen(
                             isDimmed = !app.isInstalledApp,
                             onClick = {
                                 viewModel.onAppClicked(app)
+                            },
+                            onLongPress = { pressedApp, anchorPosition ->
+                                viewModel.onAppLongPressed(pressedApp, anchorPosition)
                             }
                         )
                     }

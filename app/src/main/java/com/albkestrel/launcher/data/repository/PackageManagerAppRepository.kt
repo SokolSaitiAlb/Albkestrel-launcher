@@ -6,15 +6,21 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.ApplicationInfo
+import android.content.pm.LauncherApps
 import android.content.pm.PackageManager
 import android.content.pm.ResolveInfo
+import android.content.pm.ShortcutInfo
 import android.graphics.Bitmap
 import android.graphics.drawable.Drawable
+import android.net.Uri
 import android.os.Build
+import android.os.Process
+import android.provider.Settings
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.core.content.ContextCompat
 import androidx.core.graphics.drawable.toBitmap
+import com.albkestrel.launcher.domain.contextmenu.AppShortcut
 import com.albkestrel.launcher.domain.model.AppCategory
 import com.albkestrel.launcher.domain.model.LauncherApp
 import com.albkestrel.launcher.domain.repository.AppRepository
@@ -100,6 +106,111 @@ class PackageManagerAppRepository(
         val intent = buildLaunchIntent(app) ?: return false
         return try {
             appContext.startActivity(intent)
+            true
+        } catch (_: Exception) {
+            false
+        }
+    }
+
+    override fun openAppDetails(packageName: String): Boolean {
+        val isInstalled = loadAllApps().any { it.packageName == packageName && it.isInstalledApp }
+        if (!isInstalled) return false
+
+        val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+            data = Uri.parse("package:$packageName")
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+        return try {
+            appContext.startActivity(intent)
+            true
+        } catch (_: Exception) {
+            false
+        }
+    }
+
+    override fun uninstallApp(packageName: String): Boolean {
+        val app = loadAllApps()
+            .find { it.packageName == packageName && it.isInstalledApp }
+            ?: return false
+
+        // Defense in depth: the domain policy already omits the action for system packages, and
+        // the repository must never initiate removal for them even if a caller bypasses it.
+        if (app.isSystemApp) return false
+
+        // The system owns the confirmation UI for package removal; the launcher only initiates.
+        val intent = Intent(Intent.ACTION_DELETE).apply {
+            data = Uri.parse("package:$packageName")
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+        return try {
+            appContext.startActivity(intent)
+            true
+        } catch (_: Exception) {
+            false
+        }
+    }
+
+    override fun getShortcutsForPackage(packageName: String): List<AppShortcut> {
+        // LauncherApps shortcut discovery was introduced in Android 7.1 (API 25). minSdk is 24,
+        // so older devices must gracefully fall back to the regular app launch actions.
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N_MR1) return emptyList()
+
+        val launcherApps = appContext.getSystemService(Context.LAUNCHER_APPS_SERVICE) as? LauncherApps
+            ?: return emptyList()
+
+        if (!launcherApps.hasShortcutHostPermission()) {
+            return emptyList()
+        }
+
+        val query = LauncherApps.ShortcutQuery().apply {
+            setPackage(packageName)
+            setQueryFlags(
+                LauncherApps.ShortcutQuery.FLAG_MATCH_DYNAMIC or
+                LauncherApps.ShortcutQuery.FLAG_MATCH_MANIFEST or
+                LauncherApps.ShortcutQuery.FLAG_MATCH_PINNED
+            )
+        }
+
+        val shortcuts: List<ShortcutInfo> = try {
+            launcherApps.getShortcuts(query, Process.myUserHandle()) ?: emptyList()
+        } catch (_: Exception) {
+            emptyList()
+        }
+
+        val result = mutableListOf<AppShortcut>()
+        for (info in shortcuts) {
+            val id = info.id ?: continue
+            result += AppShortcut(
+                id = id,
+                packageName = info.`package` ?: packageName,
+                activityName = info.activity?.className,
+                shortLabel = info.shortLabel?.toString().orEmpty(),
+                longLabel = info.longLabel?.toString().orEmpty(),
+                isDynamic = info.isDynamic,
+                isDeclaredInManifest = info.isDeclaredInManifest
+            )
+        }
+        return result.filter { it.packageName == packageName }
+    }
+
+    override fun launchShortcut(app: LauncherApp, shortcutId: String): Boolean {
+        // Shortcut launching is only available from API 25 onwards, and only for packages that
+        // are still installed and launchable.
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N_MR1) return false
+        if (!app.isInstalledApp) return false
+        if (shortcutId.isBlank()) return false
+
+        val launcherApps = appContext.getSystemService(Context.LAUNCHER_APPS_SERVICE) as? LauncherApps
+            ?: return false
+
+        return try {
+            launcherApps.startShortcut(
+                app.packageName,
+                shortcutId,
+                null,
+                null,
+                Process.myUserHandle()
+            )
             true
         } catch (_: Exception) {
             false
