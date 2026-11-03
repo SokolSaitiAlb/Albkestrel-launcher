@@ -1,6 +1,7 @@
 package com.albkestrel.launcher.feature.search
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -30,6 +31,7 @@ import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.SearchOff
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -44,6 +46,7 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -52,6 +55,7 @@ import androidx.compose.ui.unit.sp
 import com.albkestrel.launcher.core.designsystem.LuminousSurface
 import com.albkestrel.launcher.core.designsystem.resolveAppIcon
 import com.albkestrel.launcher.domain.model.LauncherApp
+import com.albkestrel.launcher.domain.search.AppSearch
 import com.albkestrel.launcher.feature.common.LauncherUiState
 import com.albkestrel.launcher.feature.common.LauncherViewModel
 
@@ -75,11 +79,7 @@ fun SearchScreen(
     val matchingApps = if (query.isBlank()) {
         emptyList()
     } else {
-        uiState.allApps.filter { app ->
-            app.name.contains(query, ignoreCase = true) ||
-                    app.packageName.contains(query, ignoreCase = true) ||
-                    app.category.displayName.contains(query, ignoreCase = true)
-        }
+        AppSearch.filterByLabel(uiState.allApps, query)
     }
 
     Box(
@@ -174,53 +174,15 @@ fun SearchScreen(
                 Spacer(modifier = Modifier.height(16.dp))
 
                 if (query.isBlank()) {
-                    // Quick Suggestions & Recent Categories
-                    Text(
-                        text = "SUGGESTED APPS",
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            fontWeight = FontWeight.Bold,
-                            letterSpacing = 1.sp
-                        ),
-                        color = Color(0xFF00E5FF),
-                        modifier = Modifier.padding(start = 4.dp, bottom = 8.dp)
-                    )
-
-                    val topSuggested = uiState.allApps.take(4)
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        topSuggested.forEach { app ->
-                            SearchResultItem(app = app, onClick = { viewModel.onAppClicked(app) })
+                    when {
+                        uiState.isLoadingApps && uiState.allApps.isEmpty() -> {
+                            LoadingAppsState()
                         }
-                    }
-
-                    Spacer(modifier = Modifier.height(20.dp))
-
-                    Text(
-                        text = "SEARCH CAPABILITIES",
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            fontWeight = FontWeight.Bold,
-                            letterSpacing = 1.sp
-                        ),
-                        color = Color(0xFF94A3B8),
-                        modifier = Modifier.padding(start = 4.dp, bottom = 8.dp)
-                    )
-
-                    LuminousSurface(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(18.dp),
-                        backgroundColor = Color.White.copy(alpha = 0.04f),
-                        borderColor = Color.White.copy(alpha = 0.1f)
-                    ) {
-                        Column(modifier = Modifier.padding(14.dp)) {
-                            Text(
-                                text = "Instant App Lookup",
-                                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-                                color = Color.White
-                            )
-                            Text(
-                                text = "Type any letter to instantly filter native and device-installed applications.",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = Color(0xFF94A3B8)
-                            )
+                        uiState.allApps.isEmpty() -> {
+                            NoAppsState()
+                        }
+                        else -> {
+                            SearchSuggestions(uiState = uiState, viewModel = viewModel)
                         }
                     }
                 } else if (matchingApps.isEmpty()) {
@@ -254,7 +216,7 @@ fun SearchScreen(
                             )
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
-                                text = "No AlbkestrelOS or installed applications match \"$query\". Check spelling or explore the App Drawer.",
+                                text = "No installed applications match \"$query\". Check spelling or explore the App Drawer.",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = Color(0xFF94A3B8),
                                 modifier = Modifier.padding(horizontal = 16.dp)
@@ -291,6 +253,125 @@ fun SearchScreen(
 }
 
 @Composable
+private fun LoadingAppsState() {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(24.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            CircularProgressIndicator(
+                color = Color(0xFF00E5FF),
+                strokeWidth = 2.5.dp,
+                modifier = Modifier.size(36.dp)
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+            Text(
+                text = "Loading installed apps...",
+                style = MaterialTheme.typography.bodyLarge,
+                color = Color.White.copy(alpha = 0.7f)
+            )
+        }
+    }
+}
+
+@Composable
+private fun NoAppsState() {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(24.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Box(
+                modifier = Modifier
+                    .size(72.dp)
+                    .clip(CircleShape)
+                    .background(Color.White.copy(alpha = 0.06f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Rounded.SearchOff,
+                    contentDescription = null,
+                    tint = Color(0xFF00E5FF).copy(alpha = 0.8f),
+                    modifier = Modifier.size(36.dp)
+                )
+            }
+            Spacer(modifier = Modifier.height(14.dp))
+            Text(
+                text = "No launchable apps found",
+                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                color = Color.White
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = "Install an app with a launcher activity, then it will appear here automatically.",
+                style = MaterialTheme.typography.bodySmall,
+                color = Color(0xFF94A3B8),
+                modifier = Modifier.padding(horizontal = 16.dp)
+            )
+        }
+    }
+}
+
+@Composable
+private fun SearchSuggestions(
+    uiState: LauncherUiState,
+    viewModel: LauncherViewModel
+) {
+    Text(
+        text = "SUGGESTED APPS",
+        style = MaterialTheme.typography.labelSmall.copy(
+            fontWeight = FontWeight.Bold,
+            letterSpacing = 1.sp
+        ),
+        color = Color(0xFF00E5FF),
+        modifier = Modifier.padding(start = 4.dp, bottom = 8.dp)
+    )
+
+    val topSuggested = uiState.allApps.take(4)
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        topSuggested.forEach { app ->
+            SearchResultItem(app = app, onClick = { viewModel.onAppClicked(app) })
+        }
+    }
+
+    Spacer(modifier = Modifier.height(20.dp))
+
+    Text(
+        text = "SEARCH CAPABILITIES",
+        style = MaterialTheme.typography.labelSmall.copy(
+            fontWeight = FontWeight.Bold,
+            letterSpacing = 1.sp
+        ),
+        color = Color(0xFF94A3B8),
+        modifier = Modifier.padding(start = 4.dp, bottom = 8.dp)
+    )
+
+    LuminousSurface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(18.dp),
+        backgroundColor = Color.White.copy(alpha = 0.04f),
+        borderColor = Color.White.copy(alpha = 0.1f)
+    ) {
+        Column(modifier = Modifier.padding(14.dp)) {
+            Text(
+                text = "Instant App Lookup",
+                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                color = Color.White
+            )
+            Text(
+                text = "Type any letter to instantly filter installed applications.",
+                style = MaterialTheme.typography.bodySmall,
+                color = Color(0xFF94A3B8)
+            )
+        }
+    }
+}
+
+@Composable
 private fun SearchResultItem(
     app: LauncherApp,
     onClick: () -> Unit
@@ -321,12 +402,21 @@ private fun SearchResultItem(
                     ),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(
-                    imageVector = resolveAppIcon(app.iconSymbol),
-                    contentDescription = null,
-                    tint = Color.White,
-                    modifier = Modifier.size(22.dp)
-                )
+                if (app.icon != null) {
+                    Image(
+                        bitmap = app.icon,
+                        contentDescription = app.name,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                } else {
+                    Icon(
+                        imageVector = resolveAppIcon(app.iconSymbol),
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(22.dp)
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.width(12.dp))

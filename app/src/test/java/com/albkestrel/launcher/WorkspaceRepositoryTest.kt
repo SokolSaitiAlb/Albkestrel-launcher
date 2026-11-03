@@ -7,15 +7,19 @@ import androidx.test.core.app.ApplicationProvider
 import com.albkestrel.launcher.data.database.LauncherDatabase
 import com.albkestrel.launcher.data.database.entity.FolderEntity
 import com.albkestrel.launcher.data.database.entity.FolderItemEntity
+import com.albkestrel.launcher.data.database.entity.WorkspaceItemEntity
+import com.albkestrel.launcher.data.database.entity.WorkspaceMetadataEntity
 import com.albkestrel.launcher.data.database.entity.WorkspacePageEntity
-import com.albkestrel.launcher.data.repository.PackageManagerAppRepository
 import com.albkestrel.launcher.data.repository.RoomWorkspaceRepository
 import com.albkestrel.launcher.domain.model.GridCoordinate
 import com.albkestrel.launcher.domain.model.LauncherApp
 import com.albkestrel.launcher.domain.model.WorkspaceItem
 import com.albkestrel.launcher.domain.model.WorkspaceItemType
+import com.albkestrel.launcher.domain.repository.AppRepository
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.After
@@ -35,8 +39,31 @@ import org.robolectric.annotation.Config
 class WorkspaceRepositoryTest {
 
     private lateinit var database: LauncherDatabase
-    private lateinit var appRepository: PackageManagerAppRepository
+    private lateinit var appRepository: AppRepository
     private lateinit var workspaceRepository: RoomWorkspaceRepository
+
+    private val testApps = listOf(
+        testApp("Alpha", "com.test.alpha"),
+        testApp("Bravo", "com.test.bravo"),
+        testApp("Charlie", "com.test.charlie"),
+        testApp("Delta", "com.test.delta"),
+        testApp("Echo", "com.test.echo"),
+        testApp("Foxtrot", "com.test.foxtrot"),
+        testApp("Golf", "com.test.golf"),
+        testApp("Hotel", "com.test.hotel"),
+        testApp("India", "com.test.india"),
+        testApp("Juliet", "com.test.juliet"),
+        testApp("Kilo", "com.test.kilo"),
+        testApp("Lima", "com.test.lima"),
+        testApp("Mike", "com.test.mike"),
+        testApp("November", "com.test.november"),
+        testApp("Oscar", "com.test.oscar"),
+        testApp("Papa", "com.test.papa"),
+        testApp("Quebec", "com.test.quebec"),
+        testApp("Romeo", "com.test.romeo"),
+        testApp("Sierra", "com.test.sierra"),
+        testApp("Tango", "com.test.tango")
+    )
 
     @Before
     fun setup() {
@@ -46,7 +73,7 @@ class WorkspaceRepositoryTest {
             LauncherDatabase::class.java
         ).allowMainThreadQueries().build()
 
-        appRepository = PackageManagerAppRepository(context)
+        appRepository = FakeAppRepository(testApps)
         workspaceRepository = RoomWorkspaceRepository(database, appRepository)
     }
 
@@ -101,6 +128,140 @@ class WorkspaceRepositoryTest {
         val foldersAfterSecondInit = workspaceRepository.observeFolders().first()
         val preserved = foldersAfterSecondInit.find { it.id == "folder_creativity" }
         assertEquals("Studio Suite", preserved?.title)
+    }
+
+    @Test
+    fun `pre-v3 empty workspace is not reseeded on initialization`() = runBlocking {
+        database.workspaceMetadataDao().put(
+            WorkspaceMetadataEntity(WorkspaceMetadataEntity.KEY_DATABASE_PRE_V3, "1")
+        )
+        database.workspaceDao().insertPages(
+            listOf(
+                WorkspacePageEntity("page_0", 0),
+                WorkspacePageEntity("page_1", 1)
+            )
+        )
+        database.folderDao().insertFolders(
+            listOf(
+                FolderEntity("folder_creativity", "Creativity", 0xFF8B5CF6),
+                FolderEntity("folder_essentials", "Essentials", 0xFF00E5FF)
+            )
+        )
+
+        workspaceRepository.initializeWorkspaceIfNeeded()
+        assertEquals(0, database.workspaceDao().getItemCount())
+        assertTrue(database.folderDao().getAllFolderItems().isEmpty())
+
+        val restartRepository = RoomWorkspaceRepository(database, appRepository)
+        restartRepository.initializeWorkspaceIfNeeded()
+
+        assertEquals(0, database.workspaceDao().getItemCount())
+        assertTrue(database.folderDao().getAllFolderItems().isEmpty())
+    }
+
+    @Test
+    fun `intentionally cleared workspace remains empty after restart`() = runBlocking {
+        workspaceRepository.initializeWorkspaceIfNeeded()
+        database.workspaceDao().getAllItems().forEach { database.workspaceDao().deleteItemById(it.id) }
+        database.folderDao().getAllFolderItems().forEach { database.folderDao().deleteFolderItem(it.id) }
+
+        val restartRepository = RoomWorkspaceRepository(database, appRepository)
+        restartRepository.initializeWorkspaceIfNeeded()
+
+        assertEquals(0, database.workspaceDao().getItemCount())
+        assertTrue(database.folderDao().getAllFolderItems().isEmpty())
+    }
+
+    @Test
+    fun `legacy cleanup runs once and preserves later placements using placeholder package names`() = runBlocking {
+        database.workspaceMetadataDao().put(
+            WorkspaceMetadataEntity(WorkspaceMetadataEntity.KEY_DATABASE_PRE_V3, "1")
+        )
+        database.workspaceDao().insertPages(
+            listOf(
+                WorkspacePageEntity("page_0", 0),
+                WorkspacePageEntity("page_1", 1)
+            )
+        )
+        database.folderDao().insertFolders(
+            listOf(
+                FolderEntity("folder_creativity", "Creativity", 0xFF8B5CF6),
+                FolderEntity("folder_essentials", "Essentials", 0xFF00E5FF)
+            )
+        )
+        database.folderDao().insertFolderItems(
+            listOf(
+                FolderItemEntity(
+                    id = "fi_legacy_cleanup",
+                    folderId = "folder_creativity",
+                    packageName = "com.albkestrel.camera",
+                    position = 0
+                )
+            )
+        )
+        database.workspaceDao().insertItems(
+            listOf(
+                WorkspaceItemEntity(
+                    id = "old_dock_cleanup",
+                    itemType = "APP",
+                    pageId = "dock",
+                    cellX = 0,
+                    cellY = 0,
+                    position = 0,
+                    isDock = true,
+                    packageName = "com.albkestrel.dialer"
+                ),
+                WorkspaceItemEntity(
+                    id = "old_home_cleanup",
+                    itemType = "APP",
+                    pageId = "page_0",
+                    cellX = 2,
+                    cellY = 0,
+                    position = 2,
+                    packageName = "com.albkestrel.weather"
+                )
+            )
+        )
+
+        workspaceRepository.initializeWorkspaceIfNeeded()
+        assertTrue(
+            "First initialization must remove legacy placeholder workspace items",
+            database.workspaceDao().getAllItems().none { it.packageName == "com.albkestrel.dialer" }
+        )
+        assertTrue(
+            "First initialization must remove legacy placeholder folder items",
+            database.folderDao().getAllFolderItems().none { it.packageName == "com.albkestrel.camera" }
+        )
+
+        database.workspaceDao().insertItem(
+            WorkspaceItemEntity(
+                id = "future_real_camera",
+                itemType = "APP",
+                pageId = "page_0",
+                cellX = 2,
+                cellY = 0,
+                position = 2,
+                packageName = "com.albkestrel.camera"
+            )
+        )
+        database.folderDao().insertFolderItem(
+            FolderItemEntity(
+                id = "fi_future_real_camera",
+                folderId = "folder_creativity",
+                packageName = "com.albkestrel.camera",
+                position = 1
+            )
+        )
+
+        workspaceRepository.initializeWorkspaceIfNeeded()
+
+        assertNotNull(
+            database.workspaceDao().getAllItems().find { it.id == "future_real_camera" }
+        )
+        assertTrue(
+            database.folderDao().getAllFolderItems()
+                .any { it.packageName == "com.albkestrel.camera" }
+        )
     }
 
     @Test
@@ -216,16 +377,16 @@ class WorkspaceRepositoryTest {
         workspaceRepository.initializeWorkspaceIfNeeded()
 
         // Add a new unique app to folder
-        val firstAdd = workspaceRepository.addAppToFolder("folder_creativity", "com.albkestrel.browser")
+        val firstAdd = workspaceRepository.addAppToFolder("folder_creativity", "com.test.extra")
         assertTrue("First addition of new app must succeed", firstAdd)
 
         // Attempt to add the exact same package again to the same folder
-        val secondAdd = workspaceRepository.addAppToFolder("folder_creativity", "com.albkestrel.browser")
+        val secondAdd = workspaceRepository.addAppToFolder("folder_creativity", "com.test.extra")
         assertFalse("Duplicate package addition to the same folder must be rejected", secondAdd)
 
         val folderItems = database.folderDao().getFolderItems("folder_creativity")
-        val browserItems = folderItems.filter { it.packageName == "com.albkestrel.browser" }
-        assertEquals(1, browserItems.size)
+        val extraItems = folderItems.filter { it.packageName == "com.test.extra" }
+        assertEquals(1, extraItems.size)
     }
 
     @Test
@@ -247,7 +408,103 @@ class WorkspaceRepositoryTest {
     }
 
     @Test
-    fun `migration 1 to 2 executes cleanly and preserves existing folder items`() {
+    fun `legacy prototype entries are replaced with installed applications`() = runBlocking {
+        database.workspaceDao().insertPages(
+            listOf(
+                WorkspacePageEntity("page_0", 0),
+                WorkspacePageEntity("page_1", 1)
+            )
+        )
+        database.folderDao().insertFolders(
+            listOf(
+                FolderEntity("folder_creativity", "Creativity", 0xFF8B5CF6),
+                FolderEntity("folder_essentials", "Essentials", 0xFF00E5FF)
+            )
+        )
+        database.folderDao().insertFolderItems(
+            listOf(
+                FolderItemEntity(
+                    id = "fi_old_camera",
+                    folderId = "folder_creativity",
+                    packageName = "com.albkestrel.camera",
+                    position = 0
+                )
+            )
+        )
+        database.workspaceDao().insertItems(
+            listOf(
+                WorkspaceItemEntity(
+                    id = "old_dock_phone",
+                    itemType = "APP",
+                    pageId = "dock",
+                    cellX = 0,
+                    cellY = 0,
+                    position = 0,
+                    isDock = true,
+                    packageName = "com.albkestrel.dialer"
+                ),
+                WorkspaceItemEntity(
+                    id = "old_home_weather",
+                    itemType = "APP",
+                    pageId = "page_0",
+                    cellX = 2,
+                    cellY = 0,
+                    position = 2,
+                    packageName = "com.albkestrel.weather"
+                )
+            )
+        )
+
+        workspaceRepository.initializeWorkspaceIfNeeded()
+
+        val allItems = database.workspaceDao().getAllItems()
+        assertFalse(
+            "No legacy prototype package may remain in the workspace",
+            allItems.any { it.packageName?.startsWith("com.albkestrel.") == true }
+        )
+
+        val dockItems = allItems.filter { it.isDock }
+        assertEquals(4, dockItems.size)
+        assertTrue(dockItems.all { it.packageName?.startsWith("com.test.") == true })
+
+        val homeApps = allItems.filter { !it.isDock && it.itemType == "APP" }
+        assertTrue(homeApps.isNotEmpty())
+        assertTrue(homeApps.all { it.packageName?.startsWith("com.test.") == true })
+
+        val folderItems = database.folderDao().getAllFolderItems()
+        assertFalse(folderItems.any { it.packageName.startsWith("com.albkestrel.") })
+        assertTrue(folderItems.isNotEmpty())
+    }
+
+    @Test
+    fun `uninstalled workspace app resolves as not installed`() = runBlocking {
+        workspaceRepository.initializeWorkspaceIfNeeded()
+
+        database.workspaceDao().insertItem(
+            WorkspaceItemEntity(
+                id = "missing_item",
+                itemType = "APP",
+                pageId = "page_0",
+                cellX = 0,
+                cellY = 2,
+                position = 20,
+                packageName = "com.missing.app"
+            )
+        )
+
+        val item = workspaceRepository.observeWorkspaceItems()
+            .first()
+            .find { it.id == "missing_item" }
+
+        assertNotNull(item)
+        assertFalse(item!!.isInstalled)
+        assertNotNull(item.app)
+        assertFalse(item.app!!.isInstalledApp)
+        assertEquals("app", item.app!!.name)
+    }
+
+    @Test
+    fun `migration 1 to 3 executes cleanly and preserves existing folder items`() {
         val context = ApplicationProvider.getApplicationContext<Context>()
         val dbName = "test_migration.db"
         context.deleteDatabase(dbName)
@@ -277,9 +534,9 @@ class WorkspaceRepositoryTest {
         v1Db.execSQL("INSERT INTO `folder_items` VALUES ('fi_1', 'f_test', 'com.test.pkg', 0)")
         v1Db.close()
 
-        // 2. Open with Room specifying MIGRATION_1_2
+        // 2. Open with Room specifying MIGRATION_1_2 and MIGRATION_2_3
         val migratedDb = Room.databaseBuilder(context, LauncherDatabase::class.java, dbName)
-            .addMigrations(LauncherDatabase.MIGRATION_1_2)
+            .addMigrations(LauncherDatabase.MIGRATION_1_2, LauncherDatabase.MIGRATION_2_3)
             .allowMainThreadQueries()
             .build()
 
@@ -292,6 +549,9 @@ class WorkspaceRepositoryTest {
         assertEquals(1, folderItems.size)
         assertEquals("com.test.pkg", folderItems[0].packageName)
 
+        val preV3Marker = runBlocking { migratedDb.workspaceMetadataDao().getValue(WorkspaceMetadataEntity.KEY_DATABASE_PRE_V3) }
+        assertEquals("1", preV3Marker)
+
         // 4. Verify cascade deletion via ForeignKey
         migratedDb.openHelper.writableDatabase.execSQL("DELETE FROM workspace_folders WHERE id = 'f_test'")
         val itemsAfterDelete = runBlocking { migratedDb.folderDao().getFolderItems("f_test") }
@@ -299,5 +559,29 @@ class WorkspaceRepositoryTest {
 
         migratedDb.close()
         context.deleteDatabase(dbName)
+    }
+
+    private fun testApp(name: String, packageName: String): LauncherApp {
+        return LauncherApp(
+            id = "test_$packageName",
+            name = name,
+            packageName = packageName,
+            activityName = "$packageName.MainActivity",
+            isInstalledApp = true
+        )
+    }
+
+    private class FakeAppRepository(
+        private val apps: List<LauncherApp>
+    ) : AppRepository {
+        override val packageChanges: Flow<Unit> = emptyFlow()
+
+        override fun loadAllApps(): List<LauncherApp> = apps
+
+        override fun launchApp(app: LauncherApp): Boolean = app.isInstalledApp
+
+        override fun findAppByPackage(packageName: String): LauncherApp? {
+            return apps.find { it.packageName == packageName }
+        }
     }
 }

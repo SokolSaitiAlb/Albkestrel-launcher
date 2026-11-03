@@ -8,9 +8,11 @@ import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import com.albkestrel.launcher.data.database.dao.FolderDao
 import com.albkestrel.launcher.data.database.dao.WorkspaceDao
+import com.albkestrel.launcher.data.database.dao.WorkspaceMetadataDao
 import com.albkestrel.launcher.data.database.entity.FolderEntity
 import com.albkestrel.launcher.data.database.entity.FolderItemEntity
 import com.albkestrel.launcher.data.database.entity.WorkspaceItemEntity
+import com.albkestrel.launcher.data.database.entity.WorkspaceMetadataEntity
 import com.albkestrel.launcher.data.database.entity.WorkspacePageEntity
 
 @Database(
@@ -18,15 +20,17 @@ import com.albkestrel.launcher.data.database.entity.WorkspacePageEntity
         WorkspacePageEntity::class,
         WorkspaceItemEntity::class,
         FolderEntity::class,
-        FolderItemEntity::class
+        FolderItemEntity::class,
+        WorkspaceMetadataEntity::class
     ],
-    version = 2,
+    version = 3,
     exportSchema = true
 )
 abstract class LauncherDatabase : RoomDatabase() {
 
     abstract fun workspaceDao(): WorkspaceDao
     abstract fun folderDao(): FolderDao
+    abstract fun workspaceMetadataDao(): WorkspaceMetadataDao
 
     companion object {
         @Volatile
@@ -59,6 +63,29 @@ abstract class LauncherDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `workspace_metadata` (
+                        `key` TEXT NOT NULL,
+                        `value` TEXT NOT NULL,
+                        PRIMARY KEY(`key`)
+                    )
+                    """.trimIndent()
+                )
+                // Mark databases that existed before the metadata table. An empty workspace in
+                // one of these databases is a user choice and must not be seeded again.
+                db.execSQL(
+                    "INSERT OR REPLACE INTO `workspace_metadata` (`key`, `value`) VALUES (?, ?)",
+                    arrayOf(
+                        WorkspaceMetadataEntity.KEY_DATABASE_PRE_V3,
+                        "1"
+                    )
+                )
+            }
+        }
+
         fun getInstance(context: Context): LauncherDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
@@ -66,7 +93,7 @@ abstract class LauncherDatabase : RoomDatabase() {
                     LauncherDatabase::class.java,
                     "albkestrel_launcher.db"
                 )
-                    .addMigrations(MIGRATION_1_2)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
                     .build()
                 INSTANCE = instance
                 instance

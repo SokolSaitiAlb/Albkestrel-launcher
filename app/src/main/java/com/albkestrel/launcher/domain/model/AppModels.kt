@@ -1,6 +1,7 @@
 package com.albkestrel.launcher.domain.model
 
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
@@ -37,8 +38,10 @@ data class LauncherApp(
     val id: String,
     val name: String,
     val packageName: String,
+    val activityName: String? = null,
     val category: AppCategory = AppCategory.TOOLS,
     val iconSymbol: String = "apps",
+    val icon: ImageBitmap? = null,
     val gradientColors: List<Color> = listOf(Color(0xFF1E293B), Color(0xFF334155)),
     val badgeCount: Int? = null,
     val isSystemApp: Boolean = false,

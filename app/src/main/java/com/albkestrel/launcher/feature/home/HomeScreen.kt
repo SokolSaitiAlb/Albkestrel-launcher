@@ -161,7 +161,7 @@ fun HomeScreen(
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "Search AlbkestrelOS apps...",
+                            text = "Search installed apps...",
                             style = MaterialTheme.typography.bodyMedium,
                             color = Color.White.copy(alpha = 0.65f),
                             fontSize = 13.5.sp
@@ -299,20 +299,14 @@ private fun WorkspaceMainPage(
 
         // Clock & Date Widget with real battery telemetry
         ClockDateWidget(
-            batteryStatus = uiState.batteryStatus,
-            onWidgetClick = {
-                uiState.allApps.find { it.id == "app_clock" }?.let { viewModel.onAppClicked(it) }
-            }
+            batteryStatus = uiState.batteryStatus
         )
 
         Spacer(modifier = Modifier.height(10.dp))
 
         // Weather Mock Widget
         WeatherMockWidget(
-            weather = uiState.weather,
-            onClick = {
-                uiState.allApps.find { it.id == "app_weather" }?.let { viewModel.onAppClicked(it) }
-            }
+            weather = uiState.weather
         )
 
         Spacer(modifier = Modifier.height(16.dp))

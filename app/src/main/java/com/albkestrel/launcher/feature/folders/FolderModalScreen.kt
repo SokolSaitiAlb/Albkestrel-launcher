@@ -209,6 +209,7 @@ fun FolderModalScreen(
                             showLabel = true,
                             labelColor = Color.White,
                             animationSpeed = uiState.settings.animationSpeed,
+                            isDimmed = !app.isInstalledApp,
                             onClick = {
                                 viewModel.onAppClicked(app)
                             }

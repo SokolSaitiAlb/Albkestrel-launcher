@@ -3,6 +3,7 @@ package com.albkestrel.launcher.core.designsystem
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -13,6 +14,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -30,6 +32,7 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -157,12 +160,21 @@ private fun MiniAppPreview(app: LauncherApp?, size: Dp) {
                 ),
             contentAlignment = Alignment.Center
         ) {
-            Icon(
-                imageVector = resolveAppIcon(app.iconSymbol),
-                contentDescription = null,
-                tint = Color.White,
-                modifier = Modifier.size(size * 0.6f)
-            )
+            if (app.icon != null) {
+                Image(
+                    bitmap = app.icon,
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize()
+                )
+            } else {
+                Icon(
+                    imageVector = resolveAppIcon(app.iconSymbol),
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier.size(size * 0.6f)
+                )
+            }
         }
     } else {
         Box(

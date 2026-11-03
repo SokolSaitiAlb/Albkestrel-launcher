@@ -141,7 +141,7 @@ fun PrototypeInfoDialog(
                         "DataStore Preferences settings with SharedPreferences migration",
                         "Real-time battery telemetry via Android system broadcast receiver",
                         "HOME singleTask lifecycle & onNewIntent() overlay collapse",
-                        "App Drawer with installed package detection + Albkestrel suite",
+                        "App Drawer with real installed-app discovery, icons, and launch intents",
                         "Category-based filtering and instant search with empty states",
                         "Folder expansion modal with editable titles persisted to Room",
                         "Luminous frosted dock shelf with persistent dock items",

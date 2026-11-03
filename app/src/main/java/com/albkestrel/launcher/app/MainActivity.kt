@@ -24,7 +24,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.albkestrel.launcher.core.designsystem.AlbkestrelTheme
 import com.albkestrel.launcher.domain.model.AnimationSpeed
 import com.albkestrel.launcher.feature.appdrawer.AppDrawerScreen
-import com.albkestrel.launcher.feature.common.AppLaunchPreviewDialog
 import com.albkestrel.launcher.feature.common.LauncherOverlay
 import com.albkestrel.launcher.feature.common.LauncherUiState
 import com.albkestrel.launcher.feature.common.LauncherViewModel
@@ -190,21 +189,6 @@ fun LauncherRoot(
             PrototypeInfoDialog(
                 onDismiss = { viewModel.closeOverlay() }
             )
-        }
-
-        // Modal: App Launch Preview Dialog
-        AnimatedVisibility(
-            visible = activeOverlay is LauncherOverlay.AppLaunchPreview,
-            enter = scaleIn(animationSpec = enterScaleSpec, initialScale = 0.9f) + fadeIn(),
-            exit = scaleOut(animationSpec = enterScaleSpec, targetScale = 0.9f) + fadeOut()
-        ) {
-            if (activeOverlay is LauncherOverlay.AppLaunchPreview) {
-                AppLaunchPreviewDialog(
-                    app = activeOverlay.app,
-                    wasLaunchedDirectly = activeOverlay.wasLaunchedDirectly,
-                    onDismiss = { viewModel.closeOverlay() }
-                )
-            }
         }
     }
 }

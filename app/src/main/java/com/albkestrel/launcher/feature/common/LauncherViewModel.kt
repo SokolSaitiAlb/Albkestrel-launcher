@@ -22,6 +22,7 @@ import com.albkestrel.launcher.domain.model.WorkspaceItem
 import com.albkestrel.launcher.domain.repository.AppRepository
 import com.albkestrel.launcher.domain.repository.SettingsRepository
 import com.albkestrel.launcher.domain.repository.WorkspaceRepository
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -29,6 +30,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 sealed interface LauncherOverlay {
     object None : LauncherOverlay
@@ -37,11 +39,11 @@ sealed interface LauncherOverlay {
     object Settings : LauncherOverlay
     object PrototypeInfo : LauncherOverlay
     data class FolderExpanded(val folder: WorkspaceFolder) : LauncherOverlay
-    data class AppLaunchPreview(val app: LauncherApp, val wasLaunchedDirectly: Boolean = false) : LauncherOverlay
 }
 
 data class LauncherUiState(
     val allApps: List<LauncherApp> = emptyList(),
+    val isLoadingApps: Boolean = true,
     val workspaceItems: List<WorkspaceItem> = emptyList(),
     val folders: List<WorkspaceFolder> = emptyList(),
     val dockItems: List<WorkspaceItem> = emptyList(),
@@ -55,6 +57,26 @@ data class LauncherUiState(
     val isMediaPlaying: Boolean = true,
     val mediaTrackName: String = "Luminous Horizon",
     val mediaArtist: String = "Albkestrel Ambient Labs"
+)
+
+private data class AppListState(
+    val apps: List<LauncherApp>,
+    val isLoading: Boolean
+)
+
+private data class WorkspaceState(
+    val items: List<WorkspaceItem>,
+    val folders: List<WorkspaceFolder>,
+    val overlay: LauncherOverlay,
+    val pageIndex: Int
+)
+
+private data class PreferencesState(
+    val query: String,
+    val category: AppCategory,
+    val settings: LauncherSettings,
+    val isMediaPlaying: Boolean,
+    val batteryStatus: BatteryStatus
 )
 
 class LauncherViewModel(application: Application) : AndroidViewModel(application) {
@@ -73,6 +95,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     }
 
     private val _allApps = MutableStateFlow<List<LauncherApp>>(emptyList())
+    private val _isLoadingApps = MutableStateFlow(true)
     private val _activeOverlay = MutableStateFlow<LauncherOverlay>(LauncherOverlay.None)
     private val _homePageIndex = MutableStateFlow(0)
     private val _searchQuery = MutableStateFlow("")
@@ -85,16 +108,21 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
 
     val uiState: StateFlow<LauncherUiState> = combine(
+        combine(_allApps, _isLoadingApps) { apps, isLoading ->
+            AppListState(apps = apps, isLoading = isLoading)
+        },
         combine(
-            _allApps,
             workspaceRepository.observeWorkspaceItems(),
             workspaceRepository.observeFolders(),
             _activeOverlay,
             _homePageIndex
-        ) { allApps, items, folders, overlay, page ->
-            val dock = items.filter { it.coordinate.isDock }.sortedBy { it.coordinate.position }
-            val pageItems = items.filterNot { it.coordinate.isDock }
-            Triple(allApps, pageItems, dock) to Pair(folders, overlay) to page
+        ) { items, folders, overlay, page ->
+            WorkspaceState(
+                items = items,
+                folders = folders,
+                overlay = overlay,
+                pageIndex = page
+            )
         },
         combine(
             _searchQuery,
@@ -102,36 +130,44 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
             settingsRepository.settings,
             _isMediaPlaying,
             _batteryStatus
-        ) { query, cat, settings, mediaPlay, battery ->
-            Triple(query, cat, settings) to Pair(mediaPlay, battery)
+        ) { query, category, settings, mediaPlaying, battery ->
+            PreferencesState(
+                query = query,
+                category = category,
+                settings = settings,
+                isMediaPlaying = mediaPlaying,
+                batteryStatus = battery
+            )
         }
-    ) { (leftTuple, page), (qcsTriple, mbPair) ->
-        val (firstTriple, foPair) = leftTuple
-        val (allApps, pageItems, dock) = firstTriple
-        val (folders, overlay) = foPair
-        val (query, cat, settings) = qcsTriple
-        val (mediaPlay, battery) = mbPair
+    ) { appState, workspaceState, preferences ->
+        val dock = workspaceState.items
+            .filter { it.coordinate.isDock }
+            .sortedBy { it.coordinate.position }
+        val pageItems = workspaceState.items.filterNot { it.coordinate.isDock }
 
-        // If an expanded folder is active, update its reference with latest DB folder state
-        val resolvedOverlay = if (overlay is LauncherOverlay.FolderExpanded) {
-            val freshFolder = folders.find { it.id == overlay.folder.id } ?: overlay.folder
+        // If an expanded folder is active, update its reference with the latest DB folder state.
+        val resolvedOverlay = if (workspaceState.overlay is LauncherOverlay.FolderExpanded) {
+            val freshFolder = workspaceState.folders
+                .find { it.id == workspaceState.overlay.folder.id }
+                ?: workspaceState.overlay.folder
             LauncherOverlay.FolderExpanded(freshFolder)
         } else {
-            overlay
+            workspaceState.overlay
         }
 
         LauncherUiState(
-            allApps = allApps,
+            allApps = appState.apps,
+            isLoadingApps = appState.isLoading,
             workspaceItems = pageItems,
-            folders = folders,
+            folders = workspaceState.folders,
             dockItems = dock,
             activeOverlay = resolvedOverlay,
-            homePageIndex = page,
-            searchQuery = query,
-            drawerCategory = cat,
-            settings = settings,
-            batteryStatus = battery,
-            isMediaPlaying = mediaPlay
+            homePageIndex = workspaceState.pageIndex,
+            searchQuery = preferences.query,
+            drawerCategory = preferences.category,
+            settings = preferences.settings,
+            batteryStatus = preferences.batteryStatus,
+            isMediaPlaying = preferences.isMediaPlaying
         )
     }.stateIn(
         viewModelScope,
@@ -144,7 +180,13 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         viewModelScope.launch {
             workspaceRepository.initializeWorkspaceIfNeeded()
         }
-        // Load apps list
+
+        // Refresh immediately and whenever Android reports a package change.
+        viewModelScope.launch {
+            appRepository.packageChanges.collect {
+                loadApps()
+            }
+        }
         refreshApps()
 
         // Observe real battery status
@@ -157,7 +199,20 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
 
     fun refreshApps() {
         viewModelScope.launch {
-            _allApps.value = appRepository.loadAllApps()
+            loadApps()
+        }
+    }
+
+    private suspend fun loadApps() {
+        if (_allApps.value.isEmpty()) {
+            _isLoadingApps.value = true
+        }
+        try {
+            _allApps.value = withContext(Dispatchers.IO) {
+                appRepository.loadAllApps()
+            }
+        } finally {
+            _isLoadingApps.value = false
         }
     }
 
@@ -248,8 +303,16 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     fun onAppClicked(app: LauncherApp) {
         triggerHapticFeedback(2)
         val launched = appRepository.launchApp(app)
-        // If not launched directly (e.g. native Albkestrel preview), show living app splash preview
-        _activeOverlay.value = LauncherOverlay.AppLaunchPreview(app, wasLaunchedDirectly = launched)
+        if (launched) {
+            // The real application is now in front. Returning to the launcher should land on
+            // the home screen rather than leaving a stale drawer/search/folder overlay behind.
+            if (_activeOverlay.value is LauncherOverlay.Search) {
+                _searchQuery.value = ""
+            }
+            _activeOverlay.value = LauncherOverlay.None
+        }
+        // Apps without a launchable activity are intentionally a safe no-op. They never open the
+        // old prototype preview dialog.
     }
 
     fun toggleMediaPlayback() {

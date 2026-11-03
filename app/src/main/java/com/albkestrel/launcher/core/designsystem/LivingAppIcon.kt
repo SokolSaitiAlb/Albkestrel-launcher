@@ -3,6 +3,7 @@ package com.albkestrel.launcher.core.designsystem
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -47,12 +48,14 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -168,13 +171,24 @@ fun LivingAppIcon(
                         )
                 )
 
-                // Vector glyph
-                Icon(
-                    imageVector = resolveAppIcon(app.iconSymbol),
-                    contentDescription = app.name,
-                    tint = if (isDimmed) Color.White.copy(alpha = 0.5f) else Color.White,
-                    modifier = Modifier.size(iconSize * 0.52f)
-                )
+                // Real launcher icon when available; vector-symbol fallback for legacy entries.
+                if (app.icon != null) {
+                    Image(
+                        bitmap = app.icon,
+                        contentDescription = app.name,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .alpha(if (isDimmed) 0.45f else 1f)
+                    )
+                } else {
+                    Icon(
+                        imageVector = resolveAppIcon(app.iconSymbol),
+                        contentDescription = app.name,
+                        tint = if (isDimmed) Color.White.copy(alpha = 0.5f) else Color.White,
+                        modifier = Modifier.size(iconSize * 0.52f)
+                    )
+                }
             }
 
             // Notification Badge

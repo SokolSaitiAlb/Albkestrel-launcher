@@ -2,6 +2,7 @@ package com.albkestrel.launcher
 
 import androidx.test.core.app.ApplicationProvider
 import com.albkestrel.launcher.app.AlbkestrelApplication
+import com.albkestrel.launcher.domain.model.LauncherApp
 import com.albkestrel.launcher.domain.model.WorkspaceFolder
 import com.albkestrel.launcher.feature.common.LauncherOverlay
 import com.albkestrel.launcher.feature.common.LauncherViewModel
@@ -119,5 +120,21 @@ class LauncherHomeLifecycleTest {
         val step2Handled = viewModel.onHomeIntentReceived()
         assertTrue(step2Handled)
         assertEquals(0, viewModel.homePageIndex.value)
+    }
+
+    @Test
+    fun `unavailable app click never opens a prototype preview overlay`() = runTest(testDispatcher) {
+        viewModel.closeOverlay()
+
+        viewModel.onAppClicked(
+            LauncherApp(
+                id = "missing",
+                name = "Missing",
+                packageName = "com.missing.app",
+                isInstalledApp = false
+            )
+        )
+
+        assertEquals(LauncherOverlay.None, viewModel.activeOverlay.value)
     }
 }

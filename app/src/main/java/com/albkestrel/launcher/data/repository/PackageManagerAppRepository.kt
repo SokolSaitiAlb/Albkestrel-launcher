@@ -1,218 +1,94 @@
 package com.albkestrel.launcher.data.repository
 
+import android.content.BroadcastReceiver
+import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
-import androidx.compose.ui.graphics.Color
+import android.content.IntentFilter
+import android.content.pm.ApplicationInfo
+import android.content.pm.PackageManager
+import android.content.pm.ResolveInfo
+import android.graphics.Bitmap
+import android.graphics.drawable.Drawable
+import android.os.Build
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.core.content.ContextCompat
+import androidx.core.graphics.drawable.toBitmap
 import com.albkestrel.launcher.domain.model.AppCategory
 import com.albkestrel.launcher.domain.model.LauncherApp
 import com.albkestrel.launcher.domain.repository.AppRepository
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.update
 
+/**
+ * Repository backed by Android PackageManager.
+ *
+ * PackageManager stays in the data layer. Icons are converted once into [ImageBitmap]s and cached
+ * alongside the mapped application list so Compose never needs to touch PackageManager.
+ */
 class PackageManagerAppRepository(
-    private val context: Context
+    context: Context
 ) : AppRepository {
 
-    // Curated AlbkestrelOS Living Flow Native Suite
-    private val defaultAlbkestrelApps = listOf(
-        LauncherApp(
-            id = "app_phone",
-            name = "Phone",
-            packageName = "com.albkestrel.dialer",
-            category = AppCategory.SOCIAL,
-            iconSymbol = "phone",
-            gradientColors = listOf(Color(0xFF059669), Color(0xFF10B981)),
-            badgeCount = 2,
-            isSystemApp = true
-        ),
-        LauncherApp(
-            id = "app_messages",
-            name = "Messages",
-            packageName = "com.albkestrel.messaging",
-            category = AppCategory.SOCIAL,
-            iconSymbol = "message",
-            gradientColors = listOf(Color(0xFF0284C7), Color(0xFF38BDF8)),
-            badgeCount = 4,
-            isSystemApp = true
-        ),
-        LauncherApp(
-            id = "app_browser",
-            name = "Orbital",
-            packageName = "com.albkestrel.browser",
-            category = AppCategory.TOOLS,
-            iconSymbol = "public",
-            gradientColors = listOf(Color(0xFF4F46E5), Color(0xFF818CF8)),
-            isSystemApp = true
-        ),
-        LauncherApp(
-            id = "app_camera",
-            name = "Camera",
-            packageName = "com.albkestrel.camera",
-            category = AppCategory.MEDIA,
-            iconSymbol = "camera",
-            gradientColors = listOf(Color(0xFF1E293B), Color(0xFF475569)),
-            isSystemApp = true
-        ),
-        LauncherApp(
-            id = "app_photos",
-            name = "Photos",
-            packageName = "com.albkestrel.gallery",
-            category = AppCategory.MEDIA,
-            iconSymbol = "photo_library",
-            gradientColors = listOf(Color(0xFFE11D48), Color(0xFFF59E0B)),
-            isSystemApp = true
-        ),
-        LauncherApp(
-            id = "app_music",
-            name = "Acoustic",
-            packageName = "com.albkestrel.music",
-            category = AppCategory.MEDIA,
-            iconSymbol = "music_note",
-            gradientColors = listOf(Color(0xFF7C3AED), Color(0xFFC084FC)),
-            isSystemApp = true
-        ),
-        LauncherApp(
-            id = "app_settings",
-            name = "Settings",
-            packageName = "com.albkestrel.settings",
-            category = AppCategory.SYSTEM,
-            iconSymbol = "settings",
-            gradientColors = listOf(Color(0xFF0F172A), Color(0xFF334155)),
-            isSystemApp = true
-        ),
-        LauncherApp(
-            id = "app_clock",
-            name = "Chronos",
-            packageName = "com.albkestrel.clock",
-            category = AppCategory.TOOLS,
-            iconSymbol = "schedule",
-            gradientColors = listOf(Color(0xFF0369A1), Color(0xFF0284C7)),
-            isSystemApp = true
-        ),
-        LauncherApp(
-            id = "app_weather",
-            name = "Atmosphere",
-            packageName = "com.albkestrel.weather",
-            category = AppCategory.TOOLS,
-            iconSymbol = "wb_sunny",
-            gradientColors = listOf(Color(0xFF2563EB), Color(0xFF60A5FA)),
-            isSystemApp = true
-        ),
-        LauncherApp(
-            id = "app_calendar",
-            name = "Calendar",
-            packageName = "com.albkestrel.calendar",
-            category = AppCategory.PRODUCTIVITY,
-            iconSymbol = "calendar_today",
-            gradientColors = listOf(Color(0xFFDC2626), Color(0xFFF87171)),
-            isSystemApp = true
-        ),
-        LauncherApp(
-            id = "app_files",
-            name = "Files",
-            packageName = "com.albkestrel.files",
-            category = AppCategory.TOOLS,
-            iconSymbol = "folder",
-            gradientColors = listOf(Color(0xFFD97706), Color(0xFFFBBF24)),
-            isSystemApp = true
-        ),
-        LauncherApp(
-            id = "app_notes",
-            name = "Notes",
-            packageName = "com.albkestrel.notes",
-            category = AppCategory.PRODUCTIVITY,
-            iconSymbol = "edit_note",
-            gradientColors = listOf(Color(0xFF0D9488), Color(0xFF2DD4BF)),
-            isSystemApp = true
-        ),
-        LauncherApp(
-            id = "app_health",
-            name = "Vitality",
-            packageName = "com.albkestrel.health",
-            category = AppCategory.TOOLS,
-            iconSymbol = "favorite",
-            gradientColors = listOf(Color(0xFFBE185D), Color(0xFFFB7185)),
-            isSystemApp = true
-        ),
-        LauncherApp(
-            id = "app_maps",
-            name = "Compass",
-            packageName = "com.albkestrel.maps",
-            category = AppCategory.TOOLS,
-            iconSymbol = "explore",
-            gradientColors = listOf(Color(0xFF059669), Color(0xFF34D399)),
-            isSystemApp = true
-        ),
-        LauncherApp(
-            id = "app_studio",
-            name = "Albkestrel Studio",
-            packageName = "com.albkestrel.studio",
-            category = AppCategory.PRODUCTIVITY,
-            iconSymbol = "auto_awesome",
-            gradientColors = listOf(Color(0xFF0F172A), Color(0xFF00E5FF)),
-            isSystemApp = true
-        ),
-        LauncherApp(
-            id = "app_calc",
-            name = "Calculator",
-            packageName = "com.albkestrel.calc",
-            category = AppCategory.TOOLS,
-            iconSymbol = "calculate",
-            gradientColors = listOf(Color(0xFF334155), Color(0xFF64748B)),
-            isSystemApp = true
-        ),
-        LauncherApp(
-            id = "app_recorder",
-            name = "Voice Memo",
-            packageName = "com.albkestrel.recorder",
-            category = AppCategory.MEDIA,
-            iconSymbol = "mic",
-            gradientColors = listOf(Color(0xFF9333EA), Color(0xFFA855F7)),
-            isSystemApp = true
-        ),
-        LauncherApp(
-            id = "app_game_space",
-            name = "Game Matrix",
-            packageName = "com.albkestrel.gamespace",
-            category = AppCategory.GAMES,
-            iconSymbol = "sports_esports",
-            gradientColors = listOf(Color(0xFFE11D48), Color(0xFF831843)),
-            isSystemApp = true
-        )
-    )
+    private val appContext = context.applicationContext
+    private val cacheLock = Any()
+    private val iconCache = mutableMapOf<String, ImageBitmap?>()
+    private val packageVersion = MutableStateFlow(0L)
 
-    override fun loadAllApps(): List<LauncherApp> {
-        val installed = queryInstalledLauncherApps()
-        val combined = (defaultAlbkestrelApps + installed)
-            .distinctBy { it.packageName }
-            .sortedBy { it.name.lowercase() }
-        return combined
+    @Volatile
+    private var cachedApps: List<LauncherApp>? = null
+
+    /**
+     * Emits after the process receives a package add/remove/update broadcast. The initial value is
+     * intentionally skipped so consumers only react to actual changes.
+     */
+    override val packageChanges: Flow<Unit> = packageVersion.drop(1).map { }
+
+    private val packageChangeReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            when (intent?.action) {
+                Intent.ACTION_PACKAGE_ADDED,
+                Intent.ACTION_PACKAGE_REMOVED,
+                Intent.ACTION_PACKAGE_CHANGED,
+                Intent.ACTION_PACKAGE_REPLACED -> invalidateCache()
+            }
+        }
     }
 
-    private fun queryInstalledLauncherApps(): List<LauncherApp> {
-        return try {
-            val pm = context.packageManager
-            val intent = Intent(Intent.ACTION_MAIN, null).apply {
-                addCategory(Intent.CATEGORY_LAUNCHER)
-            }
-            val resolveInfos = pm.queryIntentActivities(intent, 0)
-            resolveInfos.mapNotNull { resolveInfo ->
-                val pkgName = resolveInfo.activityInfo.packageName
-                // Skip ourselves to avoid self-launch recursion
-                if (pkgName == context.packageName) return@mapNotNull null
+    init {
+        val filter = IntentFilter().apply {
+            addAction(Intent.ACTION_PACKAGE_ADDED)
+            addAction(Intent.ACTION_PACKAGE_REMOVED)
+            addAction(Intent.ACTION_PACKAGE_CHANGED)
+            addAction(Intent.ACTION_PACKAGE_REPLACED)
+            addDataScheme("package")
+        }
+        // Application context + process-scoped repository: the receiver lives as long as the app
+        // process and never references an Activity.
+        ContextCompat.registerReceiver(
+            appContext,
+            packageChangeReceiver,
+            filter,
+            ContextCompat.RECEIVER_NOT_EXPORTED
+        )
+    }
 
-                val appName = resolveInfo.loadLabel(pm).toString()
-                LauncherApp(
-                    id = "installed_$pkgName",
-                    name = appName,
-                    packageName = pkgName,
-                    category = AppCategory.TOOLS,
-                    iconSymbol = "android",
-                    gradientColors = listOf(Color(0xFF1E293B), Color(0xFF3B82F6)),
-                    isInstalledApp = true,
-                    isSystemApp = false
-                )
+    override fun loadAllApps(): List<LauncherApp> {
+        cachedApps?.let { return it }
+        synchronized(cacheLock) {
+            cachedApps?.let { return it }
+            val apps = try {
+                queryInstalledLauncherApps()
+            } catch (_: Exception) {
+                // Do not cache a transient failure; the next refresh will retry.
+                return emptyList()
             }
-        } catch (_: Exception) {
-            emptyList()
+            cachedApps = apps
+            return apps
         }
     }
 
@@ -221,18 +97,119 @@ class PackageManagerAppRepository(
     }
 
     override fun launchApp(app: LauncherApp): Boolean {
+        val intent = buildLaunchIntent(app) ?: return false
         return try {
-            val pm = context.packageManager
-            val launchIntent = pm.getLaunchIntentForPackage(app.packageName)
-            if (launchIntent != null) {
-                launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                context.startActivity(launchIntent)
-                true
-            } else {
-                false
-            }
+            appContext.startActivity(intent)
+            true
         } catch (_: Exception) {
             false
         }
+    }
+
+    /**
+     * Builds an explicit intent for the exact launcher activity discovered for [app]. Falling back
+     * to PackageManager's front-door intent keeps compatibility with legacy workspace entries.
+     */
+    internal fun buildLaunchIntent(app: LauncherApp): Intent? {
+        if (!app.isInstalledApp) return null
+
+        val activityName = app.activityName
+        if (!activityName.isNullOrBlank()) {
+            return Intent(Intent.ACTION_MAIN).apply {
+                addCategory(Intent.CATEGORY_LAUNCHER)
+                component = ComponentName(app.packageName, activityName)
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                addFlags(Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED)
+            }
+        }
+
+        return appContext.packageManager
+            .getLaunchIntentForPackage(app.packageName)
+            ?.apply { addFlags(Intent.FLAG_ACTIVITY_NEW_TASK) }
+    }
+
+    private fun queryInstalledLauncherApps(): List<LauncherApp> {
+        val packageManager = appContext.packageManager
+        val intent = Intent(Intent.ACTION_MAIN, null).apply {
+            addCategory(Intent.CATEGORY_LAUNCHER)
+        }
+
+        val resolveInfos = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            packageManager.queryIntentActivities(
+                intent,
+                PackageManager.ResolveInfoFlags.of(0L)
+            )
+        } else {
+            @Suppress("DEPRECATION")
+            packageManager.queryIntentActivities(intent, 0)
+        }
+
+        val records = resolveInfos.mapNotNull { resolveInfo ->
+            resolveInfo.toLauncherActivityRecord(packageManager)
+        }
+        return mapLauncherActivities(records, appContext.packageName)
+    }
+
+    private fun ResolveInfo.toLauncherActivityRecord(
+        packageManager: PackageManager
+    ): LauncherActivityRecord? {
+        val info = activityInfo ?: return null
+        val packageName = info.packageName ?: return null
+        val activityName = info.name ?: return null
+        val applicationInfo = info.applicationInfo
+        val label = runCatching { loadLabel(packageManager).toString() }
+            .getOrNull()
+            .orEmpty()
+        val icon = loadIconCached("$packageName/$activityName") { loadIcon(packageManager) }
+
+        return LauncherActivityRecord(
+            packageName = packageName,
+            activityName = activityName,
+            label = label,
+            icon = icon,
+            category = applicationInfo?.let(::mapApplicationCategory) ?: AppCategory.TOOLS,
+            isSystemApp = applicationInfo != null &&
+                (applicationInfo.flags and ApplicationInfo.FLAG_SYSTEM) != 0
+        )
+    }
+
+    private fun loadIconCached(key: String, loader: () -> Drawable?): ImageBitmap? {
+        synchronized(iconCache) {
+            if (iconCache.containsKey(key)) return iconCache[key]
+        }
+
+        val icon = try {
+            val drawable = loader() ?: return null
+            val density = appContext.resources.displayMetrics.density
+            val sizePx = (64f * density).toInt().coerceIn(96, 192)
+            drawable.toBitmap(sizePx, sizePx, Bitmap.Config.ARGB_8888).asImageBitmap()
+        } catch (_: Exception) {
+            null
+        }
+
+        synchronized(iconCache) { iconCache[key] = icon }
+        return icon
+    }
+
+    private fun mapApplicationCategory(applicationInfo: ApplicationInfo): AppCategory {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return AppCategory.TOOLS
+
+        return when (applicationInfo.category) {
+            ApplicationInfo.CATEGORY_GAME -> AppCategory.GAMES
+            ApplicationInfo.CATEGORY_AUDIO,
+            ApplicationInfo.CATEGORY_VIDEO,
+            ApplicationInfo.CATEGORY_IMAGE -> AppCategory.MEDIA
+            ApplicationInfo.CATEGORY_SOCIAL -> AppCategory.SOCIAL
+            ApplicationInfo.CATEGORY_PRODUCTIVITY -> AppCategory.PRODUCTIVITY
+            else -> AppCategory.TOOLS
+        }
+    }
+
+    private fun invalidateCache() {
+        synchronized(cacheLock) {
+            cachedApps = null
+            synchronized(iconCache) { iconCache.clear() }
+        }
+        packageVersion.update { it + 1 }
     }
 }

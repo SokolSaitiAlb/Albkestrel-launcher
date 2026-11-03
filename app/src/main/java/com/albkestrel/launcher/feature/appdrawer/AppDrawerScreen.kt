@@ -27,6 +27,7 @@ import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -50,6 +51,7 @@ import androidx.compose.ui.unit.sp
 import com.albkestrel.launcher.core.designsystem.LivingAppIcon
 import com.albkestrel.launcher.core.designsystem.LuminousSurface
 import com.albkestrel.launcher.domain.model.AppCategory
+import com.albkestrel.launcher.domain.search.AppSearch
 import com.albkestrel.launcher.feature.common.LauncherUiState
 import com.albkestrel.launcher.feature.common.LauncherViewModel
 
@@ -66,13 +68,10 @@ fun AppDrawerScreen(
     var drawerSearchQuery by remember { mutableStateOf("") }
 
     // Filter apps according to drawerCategory and drawerSearchQuery
-    val filteredApps = uiState.allApps.filter { app ->
-        val matchesCategory = (uiState.drawerCategory == AppCategory.ALL) || (app.category == uiState.drawerCategory)
-        val matchesQuery = drawerSearchQuery.isBlank() ||
-                app.name.contains(drawerSearchQuery, ignoreCase = true) ||
-                app.packageName.contains(drawerSearchQuery, ignoreCase = true)
-        matchesCategory && matchesQuery
-    }.sortedBy { it.name.lowercase() }
+    val filteredApps = AppSearch.filterByLabel(
+        AppSearch.filterByCategory(uiState.allApps, uiState.drawerCategory),
+        drawerSearchQuery
+    )
 
     Box(
         modifier = modifier
@@ -219,49 +218,81 @@ fun AppDrawerScreen(
                 Spacer(modifier = Modifier.height(8.dp))
 
                 // App Grid
-                if (filteredApps.isEmpty()) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(24.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Icon(
-                                imageVector = Icons.Rounded.Search,
-                                contentDescription = null,
-                                tint = Color.White.copy(alpha = 0.3f),
-                                modifier = Modifier.size(54.dp)
-                            )
-                            Spacer(modifier = Modifier.height(12.dp))
-                            Text(
-                                text = "No apps found for \"$drawerSearchQuery\"",
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = Color.White.copy(alpha = 0.7f)
-                            )
+                when {
+                    uiState.isLoadingApps && uiState.allApps.isEmpty() -> {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(24.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                CircularProgressIndicator(
+                                    color = Color(0xFF00E5FF),
+                                    strokeWidth = 2.5.dp,
+                                    modifier = Modifier.size(36.dp)
+                                )
+                                Spacer(modifier = Modifier.height(12.dp))
+                                Text(
+                                    text = "Loading installed apps...",
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = Color.White.copy(alpha = 0.7f)
+                                )
+                            }
                         }
                     }
-                } else {
-                    LazyVerticalGrid(
-                        columns = GridCells.Fixed(uiState.settings.gridColumns),
-                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
-                        horizontalArrangement = Arrangement.spacedBy(10.dp),
-                        verticalArrangement = Arrangement.spacedBy(16.dp),
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .testTag("drawer_apps_grid")
-                    ) {
-                        items(filteredApps, key = { it.id }) { app ->
-                            LivingAppIcon(
-                                app = app,
-                                iconSize = uiState.settings.iconSize.dp,
-                                showLabel = true,
-                                labelColor = Color.White.copy(alpha = 0.9f),
-                                animationSpeed = uiState.settings.animationSpeed,
-                                onClick = {
-                                    viewModel.onAppClicked(app)
-                                }
-                            )
+                    filteredApps.isEmpty() -> {
+                        val emptyMessage = when {
+                            drawerSearchQuery.isNotBlank() ->
+                                "No installed apps match \"$drawerSearchQuery\""
+                            uiState.drawerCategory != AppCategory.ALL ->
+                                "No ${uiState.drawerCategory.displayName.lowercase()} apps installed"
+                            else -> "No launchable apps found"
+                        }
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(24.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Icon(
+                                    imageVector = Icons.Rounded.Search,
+                                    contentDescription = null,
+                                    tint = Color.White.copy(alpha = 0.3f),
+                                    modifier = Modifier.size(54.dp)
+                                )
+                                Spacer(modifier = Modifier.height(12.dp))
+                                Text(
+                                    text = emptyMessage,
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = Color.White.copy(alpha = 0.7f)
+                                )
+                            }
+                        }
+                    }
+                    else -> {
+                        LazyVerticalGrid(
+                            columns = GridCells.Fixed(uiState.settings.gridColumns),
+                            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                            verticalArrangement = Arrangement.spacedBy(16.dp),
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .testTag("drawer_apps_grid")
+                        ) {
+                            items(filteredApps, key = { it.id }) { app ->
+                                LivingAppIcon(
+                                    app = app,
+                                    iconSize = uiState.settings.iconSize.dp,
+                                    showLabel = true,
+                                    labelColor = Color.White.copy(alpha = 0.9f),
+                                    animationSpeed = uiState.settings.animationSpeed,
+                                    onClick = {
+                                        viewModel.onAppClicked(app)
+                                    }
+                                )
+                            }
                         }
                     }
                 }

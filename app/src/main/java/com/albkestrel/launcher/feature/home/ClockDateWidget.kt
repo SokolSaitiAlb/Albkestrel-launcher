@@ -7,7 +7,6 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -53,8 +52,7 @@ import java.util.Locale
 @Composable
 fun ClockDateWidget(
     batteryStatus: BatteryStatus,
-    modifier: Modifier = Modifier,
-    onWidgetClick: () -> Unit = {}
+    modifier: Modifier = Modifier
 ) {
     var currentTime by remember { mutableStateOf(Date()) }
 
@@ -82,8 +80,7 @@ fun ClockDateWidget(
     LuminousSurface(
         modifier = modifier
             .fillMaxWidth()
-            .testTag("clock_date_widget")
-            .clickable(onClick = onWidgetClick),
+            .testTag("clock_date_widget"),
         shape = RoundedCornerShape(26.dp),
         backgroundColor = Color.Black.copy(alpha = 0.28f),
         borderColor = Color.White.copy(alpha = 0.20f)
