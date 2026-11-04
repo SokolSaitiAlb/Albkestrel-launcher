@@ -1,5 +1,6 @@
 package com.albkestrel.launcher
 
+import androidx.lifecycle.viewModelScope
 import androidx.test.core.app.ApplicationProvider
 import com.albkestrel.launcher.app.AlbkestrelApplication
 import com.albkestrel.launcher.domain.model.LauncherApp
@@ -8,7 +9,8 @@ import com.albkestrel.launcher.feature.common.LauncherOverlay
 import com.albkestrel.launcher.feature.common.LauncherViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
@@ -29,7 +31,7 @@ class LauncherHomeLifecycleTest {
 
     private lateinit var application: AlbkestrelApplication
     private lateinit var viewModel: LauncherViewModel
-    private val testDispatcher = UnconfinedTestDispatcher()
+    private val testDispatcher = StandardTestDispatcher()
 
     @Before
     fun setup() {
@@ -40,6 +42,9 @@ class LauncherHomeLifecycleTest {
 
     @After
     fun tearDown() {
+        if (::viewModel.isInitialized) {
+            viewModel.viewModelScope.cancel()
+        }
         Dispatchers.resetMain()
     }
 
