@@ -1,0 +1,111 @@
+name: Feature request
+description: Propose a change in scope, behavior, or architecture
+title: "[Feature]: "
+labels:
+  - enhancement
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Albkestrel Launcher grows in explicit phases. Read TODO.md, ROADMAP.md, and
+        docs/PROJECT_STATUS.md before proposing work. Requests for unimplemented widgets, icon packs,
+        Quickstep, work profiles, or drag-and-drop are welcome as roadmap discussion, but they are
+        not current functionality.
+
+  - type: checkboxes
+    id: preflight
+    attributes:
+      label: Preflight checks
+      options:
+        - label: I searched existing issues and discussions.
+          required: true
+        - label: I read ROADMAP.md and docs/PROJECT_STATUS.md.
+          required: true
+        - label: I understand this request may be deferred to a later phase.
+          required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Home screen or dock
+        - App drawer or search
+        - Folder modal
+        - App context menu
+        - Settings
+        - Workspace persistence
+        - Widget hosting (Phase 1.3)
+        - Icon engine (Phase 1.4)
+        - Accessibility
+        - Performance
+        - Testing or CI
+        - Documentation or governance
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What user problem does this solve? Avoid prescribing an implementation here.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed behavior
+      description: Describe the behavior you want, including edge cases.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+    validations:
+      required: false
+
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Platform dependency
+      description: Does this need a public Android API that may not exist?
+      options:
+        - No special platform capability
+        - Uses existing public APIs already in the project
+        - Requires a public API not yet integrated
+        - May be blocked by Android platform limitations
+        - Not sure
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: constraints
+    attributes:
+      label: Project constraints
+      description: Confirm the request is compatible with the project rules.
+      options:
+        - label: This can be implemented with public Android APIs and no root/system privileges.
+          required: false
+        - label: This does not require analytics, telemetry, or mandatory cloud services.
+          required: false
+        - label: This can be delivered without fake or placeholder UI.
+          required: false
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Suggested acceptance criteria
+      description: How would we know this is genuinely done and verified?
+    validations:
+      required: false
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional context
+    validations:
+      required: false
