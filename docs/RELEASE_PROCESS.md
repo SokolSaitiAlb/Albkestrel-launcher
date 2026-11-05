@@ -12,17 +12,23 @@ Do not create a release, tag, GitHub release, or signed artifact without explici
 
 The following must be resolved first:
 
-- [ ] Third-party dependency and asset license audit complete; required notices included.
-- [ ] Bundled launcher icon and wallpaper provenance resolved or the artwork replaced.
+- [ ] Third-party dependency and asset license audit complete; required notices included. The SIL
+      OFL text for Plus Jakarta Sans is present; a full dependency report is still missing.
+- [ ] Bundled launcher icon and wallpaper provenance resolved or the artwork replaced. **Release
+      blocker.**
 - [ ] GPL-3.0-or-later source-distribution and notice obligations verified.
 - [x] Phase 1.2 committed on `migration-orca` as `157e446`.
+- [ ] Phase 1.2.1 hardening (currently uncommitted) reviewed, committed, and validated.
 - [ ] Public `main` integration strategy approved; do not modify `main` before that.
-- [ ] Unused Firebase/AppCheck dependencies removed.
-- [ ] Merged manifest permissions verified.
-- [ ] Backup/data-extraction policy finalized.
+- [x] Unused Firebase/AppCheck dependencies removed and merged manifest checked (uncommitted).
+- [x] Merged manifest permissions verified: no Firebase/GMS/Play Core component and no `INTERNET`
+      permission in the debug merged manifest.
+- [x] Backup/data-extraction policy finalized and XML-validated (uncommitted).
 - [x] Accessibility click semantics corrected and covered by a focused test.
 - [x] Phase 1.2 owner-reported physical validation completed (Pixel 8a, 12/12).
-- [ ] Independent release-scope physical acceptance completed across the device matrix.
+- [ ] Independent release-scope physical acceptance completed across the device matrix, including
+      the pending Phase 1.2.1 checks.
+- [ ] `connectedDebugAndroidTest` executed on a device.
 - [ ] Version code and name chosen.
 - [ ] Signing material created outside the repository.
 - [ ] CI green on the release commit.
@@ -63,7 +69,7 @@ The debug build reads `DEBUG_KEYSTORE_PATH`, defaulting to `~/.android/debug.key
 Rules:
 
 - Never commit a `.jks`, `.keystore`, password, or `local.properties`.
-- Never put signing secrets in `.env.example`, documentation, or CI logs.
+- Never put signing secrets in documentation, source, or CI logs.
 - Do not add release signing secrets to the current CI workflow.
 - Store release material in an approved secret manager or local secure location.
 - Back up the keystore; losing it prevents updates for the same application id.
@@ -77,7 +83,8 @@ Before distributing a binary:
 - Include [LICENSE](../LICENSE) and [THIRD_PARTY_NOTICES.md](../THIRD_PARTY_NOTICES.md) with the
   release.
 - Make the corresponding source available under GPL-3.0-or-later.
-- Include the SIL OFL text and Plus Jakarta Sans notices because the font is bundled.
+- Include the SIL OFL text and Plus Jakarta Sans notices because the font is bundled; the text is at
+  `licenses/PlusJakartaSans-OFL.txt`.
 - Keep all third-party notices and do not relicense dependencies or assets.
 - Resolve or replace the bundled launcher icon and wallpaper while their provenance is unknown.
 - Do not add a dependency or asset whose license is incompatible with GPL distribution.
@@ -126,8 +133,10 @@ Minimum recommended matrix:
 | Modern | 31+ | Dynamic color plumbing, vibrator manager, edge-to-edge |
 | Current target | 36 | Target SDK behavior, insets, permissions |
 
-The Phase 1.2 owner report covers 12 scenarios on one Pixel 8a. It does not satisfy the full release
-matrix below; the remaining rows and devices still need independent validation.
+The Phase 1.2 owner report covers 12 scenarios on one Pixel 8a. It predates the Phase 1.2.1 changes
+and does not satisfy the full release matrix below; the remaining rows and devices still need
+independent validation. Use [DEVICE_TEST_MATRIX.md](DEVICE_TEST_MATRIX.md) for the reproducible
+accessibility, functional, backup, and performance checks.
 
 Acceptance checklist:
 

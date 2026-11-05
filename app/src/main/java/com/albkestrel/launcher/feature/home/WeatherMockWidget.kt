@@ -60,7 +60,7 @@ fun WeatherMockWidget(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
                         imageVector = Icons.Rounded.LocationOn,
-                        contentDescription = "Location",
+                        contentDescription = null,
                         tint = Color(0xFF38BDF8),
                         modifier = Modifier.size(15.dp)
                     )
@@ -139,7 +139,7 @@ fun WeatherMockWidget(
                 ) {
                     Icon(
                         imageVector = Icons.Rounded.WbSunny,
-                        contentDescription = "Weather condition",
+                        contentDescription = null,
                         tint = Color.White,
                         modifier = Modifier.size(32.dp)
                     )

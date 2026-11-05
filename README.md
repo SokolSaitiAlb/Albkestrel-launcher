@@ -12,22 +12,25 @@ General Public License.
 
 ## Repository status snapshot
 
-> Snapshot date: 2026-11-04
+> Snapshot date: 2026-11-05
 
 | Item | State |
 | --- | --- |
 | Public `main` | `24932c3` — initial Android project scaffold only |
-| Active development branch | `migration-orca` (Phase 1.1, Phase 1.2, and licensing commits ahead of `main`) |
+| Active development branch | `migration-orca` (Phase 1.1, Phase 1.2, documentation, and licensing commits ahead of `main`) |
 | Phase 1.2 context menu | Implemented and owner-validated; committed as `157e446` |
+| Phase 1.2.1 hardening | Implemented in the working tree, **uncommitted**; see [docs/PROJECT_STATUS.md](docs/PROJECT_STATUS.md) |
 | Production release | None |
 | License | **GPL-3.0-or-later** — see [LICENSE](LICENSE) |
 | Device validation | Owner-reported 12/12 on Google Pixel 8a (2026-11-04); not independently re-run in this audit |
 | CI workflow | Added on `migration-orca`, **not yet verified on GitHub** |
 
 Phase 1.2 is committed on `migration-orca` as `157e446` and owner-validated on a Google Pixel 8a.
-It is not merged into the public `main` branch. Phase 1.3 (widgets) and Phase 1.4 (icon engine) are
-planned, not implemented. Read
-[docs/PROJECT_STATUS.md](docs/PROJECT_STATUS.md) before treating any feature as shipped.
+It is not merged into the public `main` branch. The Phase 1.2.1 hardening work described in
+[docs/PROJECT_STATUS.md](docs/PROJECT_STATUS.md) exists only as uncommitted changes in the working
+tree; it has not been committed, merged, or device-tested. Phase 1.3 (widgets) and Phase 1.4 (icon
+engine) are planned, not implemented. Read the status document before treating any feature as
+shipped.
 
 ## Introduction
 
@@ -309,9 +312,10 @@ Detailed setup and troubleshooting are in [docs/DEVELOPMENT_SETUP.md](docs/DEVEL
 git diff --check
 ```
 
-The unit suite currently contains 64 JVM tests. Instrumentation tests are not present yet, so
-`connectedDebugAndroidTest` has nothing meaningful to execute. See
-[docs/BUILD_AND_TEST.md](docs/BUILD_AND_TEST.md).
+The unit suite currently contains 75 JVM tests. An `app/src/androidTest` accessibility suite exists
+and compiles, but it has not been executed because no device or emulator was attached. See
+[docs/BUILD_AND_TEST.md](docs/BUILD_AND_TEST.md) and
+[docs/DEVICE_TEST_MATRIX.md](docs/DEVICE_TEST_MATRIX.md).
 
 ## Installation instructions
 
@@ -325,13 +329,17 @@ is installed for the current user and that the HOME intent filter is present.
 
 ## Project status
 
-- **Current phase:** Phase 1.2 — long-press app context menu, committed as `157e446`.
-- **Code state:** Phase 1.2 (`157e446`) and the GPL licensing commit (`4b0f066`) are committed on
-  `migration-orca`; documentation and CI are part of the current commit.
-- **Verification state:** 64 unit tests and the debug build pass; the project owner reports 12/12
+- **Current phase:** Phase 1.2 — long-press app context menu, committed as `157e446`. Phase 1.2.1
+  hardening is present as **uncommitted working-tree changes**.
+- **Code state:** HEAD is `63cb0c5` on `migration-orca`. Phase 1.2 (`157e446`), the GPL licensing
+  commit (`4b0f066`), documentation, and CI commits are committed. The Phase 1.2.1 edits are not.
+- **Verification state:** 75 unit tests and the debug build pass; the instrumentation suite compiles
+  but has not run because no device or emulator is attached. The project owner reports 12/12
   physical scenarios passed on a Google Pixel 8a. Phase 1.3 and Phase 1.4 are planned, not
   implemented.
-- **CI state:** the GitHub Actions workflow is added but has not yet run on GitHub.
+- **CI state:** GitHub Actions run #4 (`41804893723`) succeeded on 2026-11-04 for the committed
+  baseline at `63cb0c5`. The uncommitted Phase 1.2.1 working-tree changes have not been validated by
+  GitHub Actions.
 - **Public `main`:** still the initial scaffold.
 
 Read [docs/PROJECT_STATUS.md](docs/PROJECT_STATUS.md) for the complete status ledger.
@@ -359,10 +367,11 @@ version:
 - Local-first: workspace layouts and preferences are stored on the device in Room and DataStore.
 - No analytics, telemetry, advertising SDK, or mandatory cloud account is used by launcher code.
 - Weather, media, and wellbeing cards are visibly mocked; they are not live services.
-- The manifest currently declares only `VIBRATE`; package visibility is narrowly scoped to
+- The manifest declares only `VIBRATE`; package visibility is narrowly scoped to
   `MAIN`/`LAUNCHER` activities.
-- Unused Firebase/AppCheck dependencies are present in the build file and must be removed before a
-  release. See [SECURITY.md](SECURITY.md).
+- Firebase, App Check, Google Services, and the secrets Gradle plugin were removed in Phase 1.2.1.
+  The debug merged manifest contains no Firebase/GMS/Play Core component and no `INTERNET`
+  permission. See [SECURITY.md](SECURITY.md).
 
 ## License
 

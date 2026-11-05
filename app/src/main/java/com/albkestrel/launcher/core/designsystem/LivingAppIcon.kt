@@ -6,6 +6,7 @@ import androidx.compose.animation.core.spring
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -15,6 +16,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -56,14 +58,23 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.onLongClick
+import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -71,6 +82,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.albkestrel.launcher.R
 import com.albkestrel.launcher.domain.model.AnimationSpeed
 import com.albkestrel.launcher.domain.model.LauncherApp
 
@@ -116,13 +128,17 @@ fun LivingAppIcon(
     // The long-press action is anchored to the icon centre so the menu opens predictably.
     val clickHandler = onClick
     val longPressHandler = onLongPress
-    val accessibilitySemantics = Modifier.semantics {
-        onClick(label = "Open ${app.name}") {
+    val openLabel = stringResource(R.string.a11y_open_app, app.name)
+    val menuLabel = stringResource(R.string.a11y_open_app_menu)
+    val accessibilitySemantics = Modifier.semantics(mergeDescendants = true) {
+        role = Role.Button
+        contentDescription = openLabel
+        onClick(label = openLabel) {
             clickHandler()
             true
         }
         if (longPressHandler != null) {
-            onLongClick(label = "Open app menu") {
+            onLongClick(label = menuLabel) {
                 val coordinates = iconCoordinates
                 val anchor = if (coordinates != null) {
                     coordinates.positionInWindow() +
@@ -139,8 +155,21 @@ fun LivingAppIcon(
     Column(
         modifier = modifier
             .testTag("app_icon_${app.id}")
+            .sizeIn(minWidth = 48.dp, minHeight = 48.dp)
             .onGloballyPositioned { iconCoordinates = it }
             .then(accessibilitySemantics)
+            .onKeyEvent { event ->
+                val activationKey = event.key == Key.Enter ||
+                    event.key == Key.NumPadEnter ||
+                    event.key == Key.Spacebar
+                if (event.type == KeyEventType.KeyUp && activationKey) {
+                    clickHandler()
+                    true
+                } else {
+                    false
+                }
+            }
+            .focusable()
             .pointerInput(app.id) {
                 detectTapGestures(
                     onLongPress = { offset ->
@@ -227,7 +256,7 @@ fun LivingAppIcon(
                 if (app.icon != null) {
                     Image(
                         bitmap = app.icon,
-                        contentDescription = app.name,
+                        contentDescription = null,
                         contentScale = ContentScale.Crop,
                         modifier = Modifier
                             .fillMaxSize()
@@ -236,7 +265,7 @@ fun LivingAppIcon(
                 } else {
                     Icon(
                         imageVector = resolveAppIcon(app.iconSymbol),
-                        contentDescription = app.name,
+                        contentDescription = null,
                         tint = if (isDimmed) Color.White.copy(alpha = 0.5f) else Color.White,
                         modifier = Modifier.size(iconSize * 0.52f)
                     )

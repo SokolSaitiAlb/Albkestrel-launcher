@@ -34,7 +34,7 @@ it.
 | AndroidX Room and DataStore | Local persistence and preferences | Apache-2.0 | Compatible with GPLv3; verify resolved artifacts and notices |
 | Coil | Image loading | Apache-2.0 | Currently commented out; verify if enabled |
 | Retrofit, OkHttp, Moshi | Networking and serialization | Apache-2.0 | Currently unused by launcher code; verify or remove |
-| Firebase AI, Firebase AppCheck, Firebase BOM, Google Services plugin, Secrets plugin | Unused scaffolding | Google APIs Terms / SDK terms (not an OSI license) | **Blocking review:** remove before release unless a distribution review confirms permission |
+| Firebase AI, Firebase AppCheck, Firebase BOM, Google Services plugin, Secrets plugin, Credential Manager / Google ID | Unused scaffolding | Removed; not shipped | Removed from the build graph and version catalog in Phase 1.2.1. No Firebase/GMS/Play Core component or `INTERNET` permission remains in the merged manifest. |
 | Google Play services Location, CameraX, Accompanist Permissions | Optional/unused integrations | Apache-2.0 or Google terms depending on artifact | Verify or remove |
 | JUnit 4 | Test-only | Eclipse Public License 1.0 | Test-only and not shipped; do not redistribute as part of the app |
 | Robolectric, AndroidX Test, Espresso | Test-only | Apache-2.0 | Test-only; not shipped in the APK |
@@ -52,8 +52,8 @@ license family, not a legal conclusion for every resolved artifact. Before distr
 - Apache-2.0 dependencies are generally compatible with GPLv3 distribution when their notices and
   license text are preserved. They are not relicensed under the GPL.
 - JUnit 4 is EPL-1.0 and is test-only; it is not part of the launcher APK.
-- Firebase and Google SDK artifacts are governed by Google terms, not an OSI license. They are
-  currently unused scaffolding and must be removed or reviewed before any distribution.
+- Firebase and Google SDK artifacts were unused scaffolding and have been removed from the build
+  graph in Phase 1.2.1. No Google-terms artifact is shipped.
 - The GPL covers original project code and documentation only. It does not override any third-party
   license, font license, asset provenance, or trademark right.
 
@@ -62,26 +62,27 @@ license family, not a legal conclusion for every resolved artifact. Before distr
 ### Plus Jakarta Sans
 
 - File: `app/src/main/res/font/plus_jakarta_sans.ttf`
+- SHA-256: `3632e5fe3fbece3917f7347ba91fbb6fa06d120af55b387f1e2067c170f92faf`
 - Copyright: 2020 The Plus Jakarta Sans Project Authors
   (<https://github.com/tokotype/PlusJakartaSans>)
-- License: SIL Open Font License 1.1 (`https://scripts.sil.org/OFL`)
+- License: SIL Open Font License 1.1
+- License text: [`licenses/PlusJakartaSans-OFL.txt`](licenses/PlusJakartaSans-OFL.txt)
 - Status: third-party asset, retained under the SIL OFL. It is **not** relicensed under the GPL.
 
 Distributions that include the font must also include the OFL license text and preserve the font's
-copyright and license notices. Modified versions of the font must follow the OFL conditions.
-
-The OFL text is **not yet committed** to this repository. Add the official SIL OFL 1.1 text and the
-font copyright notice before distributing an APK that bundles the font.
+copyright and license notices. Modified versions of the font must follow the OFL conditions. The
+full OFL 1.1 text and the upstream copyright header are committed in
+`licenses/PlusJakartaSans-OFL.txt`; ship that file with any APK that bundles the font.
 
 ## Bundled images and artwork
 
-| File | Status |
-| --- | --- |
-| `app/src/main/res/drawable/albkestrel_launcher_icon.jpg` | Provenance and license not recorded. **Unresolved.** |
-| `app/src/main/res/drawable/albkestrel_wallpaper.jpg` | Provenance and license not recorded. **Unresolved.** |
-| `app/src/main/res/mipmap-*/ic_launcher*.png` | Likely derived from the launcher icon above; treat as unresolved until the source artwork is cleared. |
-| `app/src/main/res/drawable/ic_launcher_background.xml` | Likely Android Studio template artwork; confirm before release. |
-| `app/src/main/res/drawable/ic_launcher_foreground.xml` | Likely Android Studio template artwork; confirm before release. |
+| File | SHA-256 | Status |
+| --- | --- | --- |
+| `app/src/main/res/drawable/albkestrel_launcher_icon.jpg` | `c5f0e13cd0720814c5c0bd723906745de7a0dc8294d2f7a7b859a5f9656cb185` | Provenance and license not recorded. **Unresolved — release blocker.** |
+| `app/src/main/res/drawable/albkestrel_wallpaper.jpg` | `f6236195e9646c635be01cb3b147eb7a1ae93ba777d9618620a6b4ea164b07c1` | Provenance and license not recorded. **Unresolved — release blocker.** |
+| `app/src/main/res/mipmap-*/ic_launcher*.png` | e.g. mdpi `4e3c38ac…a1734` | Derived from the launcher icon above; **unresolved** until the source artwork is cleared. |
+| `app/src/main/res/drawable/ic_launcher_background.xml` | `83385540…a9b9` | Android Studio template artwork; confirm the template license before release. |
+| `app/src/main/res/drawable/ic_launcher_foreground.xml` | `9bf5c10e…778a` | Android Studio template artwork; confirm the template license before release. |
 
 The repository does not record who created these images, where they came from, or under what terms
 they may be redistributed. They must not be described as project-owned or automatically relicensed
@@ -101,8 +102,9 @@ belong to their respective owners.
 ## Asset audit checklist
 
 - [ ] Establish the source and license for both bundled JPEGs and any derived launcher mipmaps.
-- [ ] Include the SIL OFL text and Plus Jakarta Sans notices in distributions that contain the font.
+- [x] Include the SIL OFL text and Plus Jakarta Sans notices in distributions that contain the font
+      (`licenses/PlusJakartaSans-OFL.txt`).
 - [ ] Generate a per-dependency license report before release.
-- [ ] Remove unused Firebase/AppCheck and other unused dependencies.
+- [x] Remove unused Firebase/AppCheck and other unused dependencies.
 - [ ] Confirm test-only dependencies are excluded from shipped artifacts.
 - [ ] Record every new third-party dependency, font, icon, image, or asset here before merging it.

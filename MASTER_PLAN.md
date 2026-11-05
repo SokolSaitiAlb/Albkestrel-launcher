@@ -163,10 +163,14 @@ These are not implementation bugs; they are platform boundaries that shape the p
 
 ### Required cleanup before release
 
-- Remove unused Firebase/AppCheck dependencies and verify the merged manifest.
-- Decide and document a backup policy.
+- Remove unused Firebase/AppCheck dependencies and verify the merged manifest. **Done in the
+  uncommitted Phase 1.2.1 work**; the debug merged manifest has no Firebase/GMS/Play Core entry and
+  no `INTERNET` permission.
+- Decide and document a backup policy. **Done** in `docs/BACKUP_POLICY.md` and the validated
+  `backup_rules.xml` / `data_extraction_rules.xml`.
 - Confirm no secrets, signing keys, `.env`, or `local.properties` are tracked.
 - Review dependency versions and known vulnerabilities.
+- Resolve or replace the bundled launcher icon and wallpaper before distribution.
 
 See [SECURITY.md](SECURITY.md).
 
@@ -179,15 +183,18 @@ See [SECURITY.md](SECURITY.md).
 - Repository tests with in-memory Room databases.
 - ViewModel tests with coroutine test dispatchers.
 - Room migration validation through test helpers.
+- Bounded icon-cache and clock-ticker tests.
+- Shared icon/folder accessibility semantics and 48 dp target tests.
+- Compiled `app/src/androidTest` accessibility suite (not yet executed on a device).
 - Debug assembly as a build gate.
 
 ### Required for Android integrations
 
-- Instrumentation tests for launcher UI and context menu.
+- Execute the instrumentation suite for launcher UI and context menu on a device.
 - Device tests for HOME role, package changes, uninstall, shortcuts, haptics, and TalkBack.
 - Migration tests from each released schema.
 - Physical-device testing on at least one API 24/25 device, one API 31+ device, and the current
-  target API.
+  target API, following `docs/DEVICE_TEST_MATRIX.md`.
 
 ### Evidence rule
 
@@ -205,8 +212,9 @@ validated and which layer remains unverified.
 7. Create signed artifacts outside the repository.
 8. Publish manually with release notes.
 
-The CI workflow is added on `migration-orca` but has not yet run on GitHub. It builds and uploads
-debug artifacts only. It does not sign or publish releases.
+GitHub Actions run #4 (`41804893723`) succeeded on 2026-11-04 for the committed baseline at
+`63cb0c5`. It builds and uploads debug artifacts only, and it does not sign or publish releases.
+The uncommitted Phase 1.2.1 working-tree changes were not covered by that run.
 
 ### Licensing and monetization
 

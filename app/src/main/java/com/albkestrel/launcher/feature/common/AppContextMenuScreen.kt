@@ -20,7 +20,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.produceState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -35,6 +36,8 @@ import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupProperties
 import com.albkestrel.launcher.domain.contextmenu.AppContextMenuPolicy
 import com.albkestrel.launcher.domain.model.LauncherApp
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 /**
  * Anchored long-press context menu for installed application icons.
@@ -54,13 +57,22 @@ fun AppContextMenuScreen(
         viewModel.dismissAppContextMenu()
     }
 
-    // Shortcut discovery touches PackageManager/LauncherApps, so resolve it once per app rather
-    // than on every recomposition while the menu is visible.
-    val actions = remember(app.id, app.packageName, app.isInstalledApp) {
-        AppContextMenuPolicy.actionsFor(
-            app,
-            viewModel.appRepository.getShortcutsForPackage(app.packageName)
-        )
+    // Shortcut discovery touches PackageManager/LauncherApps, so resolve it off the main thread
+    // once per app rather than during composition while the menu is visible.
+    val actions by produceState(
+        initialValue = AppContextMenuPolicy.actionsFor(app, emptyList()),
+        app.id,
+        app.packageName,
+        app.isInstalledApp
+    ) {
+        value = withContext(Dispatchers.IO) {
+            val shortcuts = if (app.isInstalledApp) {
+                viewModel.appRepository.getShortcutsForPackage(app.packageName)
+            } else {
+                emptyList()
+            }
+            AppContextMenuPolicy.actionsFor(app, shortcuts)
+        }
     }
     val configuration = LocalConfiguration.current
     val density = LocalDensity.current

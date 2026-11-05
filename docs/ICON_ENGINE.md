@@ -46,12 +46,14 @@ Key files:
 ### Cache invalidation
 
 - Package added/removed/changed/replaced broadcasts clear the app cache and the icon cache.
-- The cache is process-scoped and currently **unbounded**.
+- The cache is process-scoped and bounded by a heap-derived `LruCache` in the Phase 1.2.1 working
+  tree; failed decodes are not cached.
 - The cache is not persisted, so icons reload after process death.
 
 ## 2. Known limitations
 
-1. **Unbounded cache.** Every resolved icon stays in memory for the process lifetime.
+1. **Memory budget not profiled.** The cache is bounded, but its behaviour on low-memory devices has
+   not been measured.
 2. **No icon pack support.** There is no `appfilter.xml` parsing, no drawable lookup, no pack UI.
 3. **No per-app overrides.** A user cannot choose a different icon for one app.
 4. **No themed icons.** Android 13+ monochrome/themed icon support is not used.

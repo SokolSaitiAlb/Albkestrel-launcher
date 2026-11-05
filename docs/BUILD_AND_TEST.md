@@ -30,10 +30,12 @@ Expected results:
 - The debug APK assembles.
 - No whitespace errors are reported.
 
-The latest recorded Phase 1.2 validation was **64 tests, 0 failures, 0 errors, 0 skipped**, with a
-successful debug assembly. Re-run the commands to produce current evidence; do not rely on a history
-entry. The project owner separately reports 12/12 physical scenarios passed on a Google Pixel 8a;
-that report is not a substitute for the commands above.
+The latest recorded working-tree validation (HEAD `63cb0c5` plus uncommitted Phase 1.2.1 changes)
+was **75 tests, 0 failures, 0 errors, 0 skipped**, with a successful debug assembly and a successful
+`assembleDebugAndroidTest`. Re-run the commands to produce current evidence; do not rely on a
+history entry. The project owner separately reports 12/12 physical scenarios passed on a Google
+Pixel 8a before the Phase 1.2.1 changes; that report is not a substitute for the commands above and
+does not cover the new accessibility or backup work.
 
 ## 3. Unit tests
 
@@ -68,10 +70,13 @@ The suite uses:
 | `WorkspaceRepositoryTest` | Bootstrap, preservation, migration, collisions, folders, remove |
 | `InstalledAppsMappingTest` | Mapping, exclusion, sort, dedupe, fallbacks |
 | `PackageManagerAppRepositoryTest` | Launch intents, broadcasts, details, uninstall, shortcuts |
-| `LivingAppIconAccessibilityTest` | Click/long-click semantics and no-long-press fallback |
+| `LivingAppIconAccessibilityTest` | Click/long-click semantics, role, label, 48 dp target |
+| `FolderIconAccessibilityTest` | Folder role, click action, 48 dp target |
+| `IconMemoryCacheTest` | Cache budget, eviction, no negative caching |
+| `ClockTickerTest` | Minute-aligned delay and reduced-motion gating |
 | `AppSearchTest` | Label filtering, ordering, categories, empty results |
 
-Total: 64 tests.
+Total: 75 tests.
 
 ### What unit tests do not prove
 
@@ -129,17 +134,39 @@ and review warnings rather than suppressing them blindly.
 
 ## 7. Instrumentation tests
 
-There is no `app/src/androidTest` source set yet. The test runner dependency is configured, but
-`connectedDebugAndroidTest` has no tests to run.
+`app/src/androidTest` contains `accessibility/AccessibilityInstrumentationTest.kt`, which checks the
+button role, spoken label, click action, and 48 dp minimum target for the shared app and folder icons
+on a real Android runtime.
 
-When the suite is added:
+Compile it without a device:
+
+```bash
+./gradlew :app:assembleDebugAndroidTest
+```
+
+Run it with a connected device or emulator:
 
 ```bash
 ./gradlew :app:connectedDebugAndroidTest
 ```
 
-This requires a connected device or emulator and should be reported with the API level and device
-model.
+At the time of writing no device or emulator was attached, so the suite **compiles but has not run**.
+Report the API level and device model with any result. See
+[DEVICE_TEST_MATRIX.md](DEVICE_TEST_MATRIX.md).
+
+## 7.1 Backup XML validation
+
+The backup policy is enforced by `app/src/main/res/xml/backup_rules.xml` and
+`data_extraction_rules.xml`. Validate both after editing:
+
+```bash
+xmllint --noout app/src/main/res/xml/backup_rules.xml
+xmllint --noout app/src/main/res/xml/data_extraction_rules.xml
+```
+
+`xmllint` is not part of the Gradle toolchain; if it is unavailable, parse the files with any
+XML parser. The merged manifest must still reference both files. See
+[BACKUP_POLICY.md](BACKUP_POLICY.md).
 
 ## 8. Install and smoke test
 
@@ -187,9 +214,10 @@ The GitHub workflow runs:
 - Debug assembly.
 - Debug APK and test-report upload.
 
-The workflow has not run on GitHub yet. CI does not run release signing, publish releases, or run
-instrumentation tests. A green CI run is
-not a substitute for physical-device validation.
+GitHub Actions run #4 (`41804893723`) succeeded on 2026-11-04 for the committed baseline at
+`63cb0c5`. The uncommitted Phase 1.2.1 working-tree changes were not covered by that run. CI does
+not run release signing, publish releases, or run instrumentation tests. A green CI run is not a
+substitute for physical-device validation.
 
 ## 11. Clean build guidance
 

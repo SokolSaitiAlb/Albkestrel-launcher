@@ -72,9 +72,12 @@ Current source manifest:
   accessibility-service permission is declared.
 - Package visibility is scoped with a `<queries>` entry for `MAIN`/`LAUNCHER` activities.
 
-Important caveat: `app/build.gradle.kts` still includes Firebase AI, Firebase AppCheck, the Firebase
-BOM, the Secrets plugin, and the Google Services plugin even though launcher code does not use them.
-Dependency manifest merging can add permissions. Before release:
+Current build configuration: `app/build.gradle.kts` applies only the Android application, Kotlin
+Compose, and KSP plugins. Firebase AI, Firebase App Check, the Firebase BOM, the Secrets plugin, and
+the Google Services plugin are no longer present in the build, and production source has no
+references to them. The source manifest declares only `VIBRATE`. The pre-existing merged debug
+manifest also contains no Firebase/GMS/Play Core entry and no `INTERNET` permission. That merged
+artifact predates the current working tree, so re-verify after the Phase 1.2.1 change is committed:
 
 ```bash
 ./gradlew :app:processDebugMainManifest
@@ -82,7 +85,8 @@ Dependency manifest merging can add permissions. Before release:
 # and verify the packaged APK permissions with aapt/apkanalyzer.
 ```
 
-Remove unused dependencies rather than assuming the source manifest is the final permission set.
+Do not add a network or cloud dependency without a documented product need and a privacy review, and
+never assume the source manifest is the final permission set without checking the merged output.
 
 ## Data handling
 
@@ -111,10 +115,12 @@ change requires an explicit privacy review, documentation, and user consent wher
 
 ## Backup behavior
 
-`android:allowBackup="true"` is currently set. The backup and data-extraction XML files are still
-sample templates, which means the platform default backup behavior may apply. Before release, decide
-explicitly whether workspace layouts and preferences should be included in cloud backup or device
-transfer, and encode that decision in both XML files.
+`android:allowBackup="true"` is set. The Phase 1.2.1 working tree replaces the sample templates with
+explicit `backup_rules.xml` and `data_extraction_rules.xml`: the Room database, DataStore settings,
+and legacy SharedPreferences are included; disposable caches are excluded by omission; cloud backup
+requires an encryption-capable device; device-to-device transfer includes the same application data.
+See [docs/BACKUP_POLICY.md](docs/BACKUP_POLICY.md). The policy has been XML-validated but has not
+been exercised by a real cloud backup or restore.
 
 Users who require strict local-only storage should understand that Android's OS-level backup is
 outside the launcher's control unless the app excludes its data.
@@ -123,15 +129,17 @@ outside the launcher's control unless the app excludes its data.
 
 Current risks:
 
-- Unused Firebase/AppCheck dependencies increase the dependency and permission surface.
-- The version catalog includes optional libraries that are not used; commented dependencies are not
-  part of the build, but the active Firebase entries are.
+- The Phase 1.2.1 working tree removes the unused Firebase/App Check dependencies; the debug merged
+  manifest has no Firebase/GMS/Play Core entry and no `INTERNET` permission. Re-verify after the
+  change is committed.
+- The version catalog may still contain optional entries that are not used; commented dependencies
+  are not part of the build.
 - There is no Dependabot or dependency-verification configuration yet.
 - No software bill of materials is generated.
 
 Recommended practices:
 
-- Remove unused dependencies and plugins.
+- Keep unused dependencies and plugins removed from the build graph.
 - Keep the version catalog as the single source of dependency versions.
 - Review dependency updates for permissions and transitive changes.
 - Run dependency vulnerability checks before release.

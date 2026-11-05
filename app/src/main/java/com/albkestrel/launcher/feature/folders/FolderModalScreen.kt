@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -41,9 +42,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.albkestrel.launcher.R
 import com.albkestrel.launcher.core.designsystem.LivingAppIcon
 import com.albkestrel.launcher.core.designsystem.LuminousSurface
 import com.albkestrel.launcher.domain.model.WorkspaceFolder
@@ -121,7 +128,7 @@ fun FolderModalScreen(
                                 ) {
                                     Icon(
                                         imageVector = Icons.Rounded.Check,
-                                        contentDescription = "Save Title",
+                                        contentDescription = stringResource(R.string.a11y_save_folder_title),
                                         tint = Color(0xFF00E5FF)
                                     )
                                 }
@@ -139,11 +146,20 @@ fun FolderModalScreen(
                                 .testTag("edit_folder_title_input")
                         )
                     } else {
+                        val editTitleLabel = stringResource(
+                            R.string.a11y_edit_folder_title_named,
+                            folder.title
+                        )
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier
                                 .weight(1f)
-                                .clickable {
+                                .heightIn(min = 48.dp)
+                                .semantics(mergeDescendants = true) {
+                                    role = Role.Button
+                                    contentDescription = editTitleLabel
+                                }
+                                .clickable(role = Role.Button) {
                                     editedTitle = folder.title
                                     isEditingTitle = true
                                 }
@@ -160,7 +176,7 @@ fun FolderModalScreen(
                             Spacer(modifier = Modifier.width(8.dp))
                             Icon(
                                 imageVector = Icons.Rounded.Edit,
-                                contentDescription = "Edit title",
+                                contentDescription = null,
                                 tint = Color.White.copy(alpha = 0.5f),
                                 modifier = Modifier.size(16.dp)
                             )
@@ -178,14 +194,14 @@ fun FolderModalScreen(
                             viewModel.closeOverlay()
                         },
                         modifier = Modifier
-                            .size(36.dp)
+                            .size(48.dp)
                             .clip(CircleShape)
                             .background(Color.White.copy(alpha = 0.08f))
                             .testTag("folder_close_button")
                     ) {
                         Icon(
                             imageVector = Icons.Rounded.Close,
-                            contentDescription = "Close Folder",
+                            contentDescription = stringResource(R.string.a11y_close_folder),
                             tint = Color.White.copy(alpha = 0.8f),
                             modifier = Modifier.size(18.dp)
                         )

@@ -1,6 +1,6 @@
 # Project Status
 
-Snapshot date: 2026-11-04
+Snapshot date: 2026-11-05
 
 This ledger records repository evidence, not intentions. It must be updated after every phase.
 
@@ -11,22 +11,30 @@ This ledger records repository evidence, not intentions. It must be updated afte
 | Repository | `SokolSaitiAlb/Albkestrel-launcher` |
 | Worktree audited | `/home/alb/orca/workspaces/Albkestrel-launcher/main` |
 | Branch | `migration-orca` |
-| HEAD | `4b0f06673844e3476408884f9859f2cd81726bb3` |
-| HEAD subject | `docs(license): add GPL-3.0-or-later license` |
+| HEAD | `63cb0c51862642b5a518ced82ffe222e7bbeef37` |
+| HEAD subject | `test(launcher): stabilize ViewModel coroutine test dispatchers` |
 | Public `main` | `24932c3a5e740b1034e3243fc5c5a7b3256dafb6` |
 | Merge base of `main` and `migration-orca` | `24932c3` |
-| `migration-orca` ahead of `main` | 4 commits (`b93c39f`, `8747b09`, `157e446`, `4b0f066`) |
+| `migration-orca` ahead of `main` | 8 commits (`b93c39f`, `8747b09`, `157e446`, `4b0f066`, `29e5170`, `fc84cff`, `b226446`, `63cb0c5`) |
 | `main` ahead of `migration-orca` | 0 commits |
+| Working tree | Phase 1.2.1 hardening changes present and **uncommitted** |
 | Project license | `GPL-3.0-or-later` (`LICENSE`) |
 
 ## 2. Current development phase
 
-**Phase 1.2 — long-press app context menu.**
+**Phase 1.2.1 — hardening of the long-press context-menu release.** Phase 1.2 itself is complete at
+`157e446`.
 
-The implementation is committed on `migration-orca` as `157e446`. It is not present on the public
-`main` branch and must not be described as merged or released. The project owner reports 12/12
+The Phase 1.2 implementation is committed on `migration-orca` as `157e446`. It is not present on the
+public `main` branch and must not be described as merged or released. The project owner reports 12/12
 physical scenarios passed on a Google Pixel 8a; this is owner-reported validation, not an
 independently reproduced run.
+
+Phase 1.2.1 hardening is present only as **uncommitted working-tree changes** on top of HEAD
+`63cb0c5`. It removes unused Firebase/App Check scaffolding, defines and validates the backup policy,
+bounds the icon cache, moves shortcut discovery off the composition thread, expands accessibility
+and keyboard support, and adds the Plus Jakarta Sans OFL text. None of that work is committed or
+device-tested.
 
 Phase 1.1 (`8747b09`) is committed on `migration-orca`. Phase 1.3 (widgets) and Phase 1.4 (icon
 engine) are planned, not implemented.
@@ -35,6 +43,10 @@ engine) are planned, not implemented.
 
 ```text
 main                 24932c3  chore: initialize Android project structure
+migration-orca       63cb0c5  test(launcher): stabilize ViewModel coroutine test dispatchers
+migration-orca       b226446  fix(ci): generate debug keystore on runner
+migration-orca       fc84cff  fix(ci): avoid obsolete Android SDK tools package
+migration-orca       29e5170  docs: add project documentation and GitHub CI
 migration-orca       4b0f066  docs(license): add GPL-3.0-or-later license
 migration-orca       157e446  feat(launcher): complete phase 1.2 app context menu
 migration-orca       8747b09  feat(apps): integrate real installed-app discovery, search, and Room v3 metadata
@@ -46,9 +58,12 @@ Phase 1.2 was committed as `157e446` on top of `8747b09`:
 - 5 new Phase 1.2 implementation/test files, including the icon accessibility test.
 - 18 files total.
 
-The GPL license and third-party notices were committed as `4b0f066`. Documentation and CI are
-committed separately. The untracked `skills/` directory is unrelated external agent content and is
-excluded from all commits.
+The GPL license and third-party notices were committed as `4b0f066`. Documentation and CI were
+committed as `29e5170`, `fc84cff`, and `b226446`; the coroutine-dispatcher test fix is `63cb0c5`. The
+untracked `skills/` directory is unrelated external agent content and is excluded from all commits.
+
+The Phase 1.2.1 hardening changes are not part of any commit. They must be reviewed, committed, and
+validated before they are reported as durable.
 
 ## 4. Verified features
 
@@ -83,20 +98,45 @@ excluded from all commits.
 - Focused unit tests for policy, repository actions, shortcuts, ViewModel behavior, and icon
   semantics.
 
-### 4.3 Latest recorded validation
+### 4.3 Phase 1.2.1 working-tree changes (uncommitted)
 
-Re-run after adding the focused icon accessibility test and updating the documentation:
+- Removed Firebase BOM/AI/App Check dependencies, the `secrets` and `googleServices` blocks, plugin
+  aliases, catalog entries, `googleServices.missing.passthrough`, and `.env.example`.
+- Debug merged manifest contains no Firebase/GMS/Play Core entry and no `INTERNET` permission.
+- Explicit `backup_rules.xml` and `data_extraction_rules.xml`; both XML documents pass `xmllint`
+  and Python `ElementTree` parsing. Policy documented in
+  [BACKUP_POLICY.md](BACKUP_POLICY.md).
+- `IconMemoryCache` bounds decoded icons at 1/10 heap (clamped 4–32 MiB) and does not cache failed
+  decodes; `PackageManagerAppRepository` clears it on package invalidation.
+- Context-menu shortcut lookup uses `produceState` + `Dispatchers.IO`.
+- Clock ticker is minute-aligned and lifecycle-aware; infinite pulse is disabled under
+  `AnimationSpeed.REDUCED_MOTION`.
+- 48 dp targets, button/radio roles, merged spoken labels, focusability, and keyboard activation
+  were added across launcher surfaces; labels were extracted to `strings.xml`.
+- New `FolderIconAccessibilityTest`, extended `LivingAppIconAccessibilityTest`, new
+  `IconMemoryCacheTest` and `ClockTickerTest`, plus a compiled
+  `AccessibilityInstrumentationTest` suite.
+- `licenses/PlusJakartaSans-OFL.txt` added; `THIRD_PARTY_NOTICES.md` records SHA-256 hashes and
+  retains the unresolved JPEG/mipmap blockers.
+
+### 4.4 Latest recorded validation
+
+Run on the uncommitted working tree at HEAD `63cb0c5`:
 
 | Check | Result |
 | --- | --- |
-| `./gradlew :app:testDebugUnitTest --rerun-tasks` | 64 tests, 0 failures, 0 errors, 0 skipped |
-| `./gradlew :app:assembleDebug` | Successful (up-to-date; test-only change) |
+| `./gradlew :app:testDebugUnitTest --rerun-tasks` | 75 tests, 0 failures, 0 errors, 0 skipped |
+| `./gradlew :app:assembleDebug` | Successful |
+| `./gradlew :app:assembleDebugAndroidTest` | Successful; instrumentation suite compiles |
 | `git diff --check` | Clean |
-| Debug APK | `app/build/outputs/apk/debug/app-debug.apk`, 22,711,583 bytes, SHA-256 `86f938ada45d66e6175df6634be70fadc3d395eee897a528c8dcb15172657059` |
+| `xmllint` / `ElementTree` on backup XML | Both documents valid |
+| `./gradlew :app:connectedDebugAndroidTest` | **Not run** — no device or emulator attached |
 
-The project owner separately reported 12/12 physical scenarios passed on a Google Pixel 8a. Markdown
-links, code fences, GitHub YAML, and `git diff --check` were validated separately. The GitHub Actions
-workflow has not been executed on GitHub.
+The project owner separately reported 12/12 physical scenarios passed on a Google Pixel 8a before
+the Phase 1.2.1 changes. That report does not cover the accessibility, backup, cache, or manifest
+changes. GitHub Actions run #4 (`41804893723`) succeeded on 2026-11-04 for the committed baseline
+at `63cb0c5`; the uncommitted Phase 1.2.1 working-tree changes were not covered by that run. See
+[DEVICE_TEST_MATRIX.md](DEVICE_TEST_MATRIX.md) for the pending checks.
 
 ## 5. Physical validation
 
@@ -118,6 +158,8 @@ source and automated tests, including the explicit click/long-click semantics.
 
 ### 5.2 Still without recorded physical validation
 
+- All Phase 1.2.1 accessibility, keyboard, backup, cache, and manifest changes.
+- The compiled `AccessibilityInstrumentationTest` suite has not been executed.
 - Android 7.0/7.1 shortcut fallback and permission-denied behavior.
 - Uninstall cancellation and post-uninstall refresh edge cases.
 - App-details routing on OEM builds.
@@ -126,8 +168,9 @@ source and automated tests, including the explicit click/long-click semantics.
 - Real icon rendering at every configured icon scale.
 - Landscape, wide/foldable, and RTL layouts.
 - Switch-access and keyboard/D-pad traversal.
-- TalkBack focus order within the context menu.
+- TalkBack focus order within the context menu and every launcher surface.
 - Package-change refresh while the launcher is visible.
+- Cloud backup encryption gating, cloud restore, and device-to-device transfer.
 
 ## 6. Known limitations
 
@@ -143,18 +186,21 @@ source and automated tests, including the explicit click/long-click semantics.
 
 ### Implementation limitations
 
-- Shortcut discovery runs synchronously during context-menu composition.
-- The icon cache is not bounded.
+- Phase 1.2.1 changes are uncommitted and have not been device-tested.
+- The icon cache is bounded in the working tree but has not been profiled on a low-memory device.
 - Dynamic color and wallpaper dim are persisted but not exposed in Settings.
 - Workspace editing exists in the repository but not as drag-and-drop UI.
 - Widget slots persist but render nothing.
-- No instrumentation test source set exists.
-- The GitHub Actions workflow has been added but has not yet run on GitHub.
-- The physical validation is owner-reported; no independent device matrix is recorded.
-- Backup rules are sample templates.
-- Unused Firebase/AppCheck dependencies remain in the build.
-- The bundled launcher icon and wallpaper have unresolved provenance and licensing.
-- A per-dependency license audit has not been completed.
+- The `app/src/androidTest` suite exists and compiles but has not run.
+- GitHub Actions run #4 (`41804893723`) succeeded on 2026-11-04 at `63cb0c5`; the uncommitted
+  Phase 1.2.1 working-tree changes have not been validated by CI.
+- The physical validation is owner-reported and predates Phase 1.2.1; no independent device matrix
+  is recorded.
+- Backup rules are explicit and XML-valid but have not been exercised by a real backup/restore.
+- The bundled launcher icon and wallpaper have unresolved provenance and licensing. **Release
+  blocker.**
+- The SIL OFL text for Plus Jakarta Sans is present, but a full per-dependency license audit has not
+  been completed.
 
 ### Documentation limitations
 
@@ -175,23 +221,24 @@ source and automated tests, including the explicit click/long-click semantics.
 
 | Risk | Impact | Mitigation |
 | --- | --- | --- |
-| Owner-reported validation only | Some device-specific paths may still fail | Independently re-run the checklist and expand the device matrix |
-| Unused Firebase dependencies | Extra permissions/surface area | Remove and verify merged manifest |
-| Unbounded icon cache | Memory pressure with many apps | Bound and measure |
-| Main-thread shortcut query | Menu jank | Move discovery to a background state flow |
-| Sample backup rules | Unclear data exposure | Define explicit backup policy |
-| No instrumentation tests | Regressions in system flows | Add `androidTest` suite |
+| Phase 1.2.1 is uncommitted | Work can be lost or conflated with other changes | Review, commit, and validate with explicit authorization |
+| Owner-reported validation only | Device-specific paths may still fail | Independently run `DEVICE_TEST_MATRIX.md` |
+| Bounded cache not profiled | Memory behaviour on low-RAM devices is unmeasured | Measure on a low-memory device and adjust the budget |
+| Backup rules not exercised | Restore may omit or expose data unexpectedly | Run BAK-01 through BAK-07 on a device |
+| Instrumentation suite not executed | Regressions in accessibility semantics may slip through | Run `connectedDebugAndroidTest` with a device attached |
 | Unresolved asset provenance | Bundled artwork may not be redistributable | Audit or replace the launcher icon and wallpaper; record in `THIRD_PARTY_NOTICES.md` |
 | Incomplete dependency audit | Missing third-party notices | Generate a per-dependency license report before release |
 | No release signing | Cannot produce a distributable release | Set up external signing material |
 
 ## 9. Next recommended milestone
 
-1. Review the committed Phase 1.2 diff (`157e446`) and licensing commit (`4b0f066`).
-2. Merge or publish the documentation/CI commit only with explicit authorization.
-3. Independently re-run the physical-device checklist and broaden coverage where noted in 5.2.
-4. Remove unused dependencies and verify the merged manifest.
-5. Verify the GitHub Actions workflow on GitHub before claiming CI is green.
+1. Review and, with explicit authorization, commit the Phase 1.2.1 hardening changes.
+2. Attach a Pixel 8a or equivalent device and execute
+   [DEVICE_TEST_MATRIX.md](DEVICE_TEST_MATRIX.md), including `connectedDebugAndroidTest`.
+3. Resolve the bundled JPEG and mipmap provenance before any distribution.
+4. Complete the per-dependency license report.
+5. Confirm that a CI run covers the Phase 1.2.1 commit before claiming CI is green; run #4
+   (`41804893723`) validated only the `63cb0c5` baseline.
 6. Only then begin Phase 1.3 after accepting ADR-003.
 
 ## 10. Status honesty rules

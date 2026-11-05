@@ -120,7 +120,8 @@ If the expected branch or repository state differs, stop and report the discrepa
 - No mandatory sign-in.
 - No Firebase, analytics, crash-reporting, or advertising SDK may be added to launcher code without
   explicit approval.
-- Existing unused Firebase/AppCheck dependencies are a cleanup item, not a pattern to extend.
+- Firebase/App Check, Google Services, and secrets scaffolding were removed in the Phase 1.2.1
+  working tree; do not reintroduce them without an explicit product need and approval.
 - Logging must not contain personal data, package inventories, or secrets.
 
 ## 11. Never introduce unnecessary dependencies
@@ -145,8 +146,9 @@ If the expected branch or repository state differs, stop and report the discrepa
 
 - Add instrumentation tests for Compose surfaces and Android integrations when the task scope
   includes them.
-- The repository currently has no `app/src/androidTest` suite; do not claim instrumentation coverage
-  that does not exist.
+- The repository has `app/src/androidTest` with a compiled accessibility suite; it has not been run
+  because no device or emulator was attached. Do not claim instrumentation execution that did not
+  happen.
 - Widget hosting, shortcuts, uninstall flows, HOME behavior, and permission flows require
   device/emulator validation.
 
@@ -231,13 +233,17 @@ Do not summarize a large diff as "various changes".
 
 - Active worktree: `/home/alb/orca/workspaces/Albkestrel-launcher/main`.
 - Branch: `migration-orca`.
-- HEAD: `4b0f066` at the time of writing.
+- HEAD: `63cb0c5` at the time of writing.
 - Public `main`: `24932c3`.
 - Phase 1.2 is committed as `157e446`; the GPL license and notices are committed as `4b0f066`.
+- Phase 1.2.1 hardening (Firebase removal, backup policy, bounded icon cache, off-main-thread
+  shortcuts, accessibility, licensing) exists as **uncommitted working-tree changes**.
 - The project owner reports 12/12 physical scenarios passed on a Google Pixel 8a, including
-  TalkBack click and long-press. That report is not a substitute for an independent re-run.
+  TalkBack click and long-press. That report predates and does not cover the Phase 1.2.1 changes,
+  and it is not a substitute for an independent re-run.
 - Phase 1.3 (widgets) and Phase 1.4 (icon engine) are planned, not implemented.
-- The GitHub Actions workflow is added but has not yet run on GitHub.
+- GitHub Actions run #4 (`41804893723`) succeeded on 2026-11-04 for the committed baseline at
+  `63cb0c5`. The uncommitted Phase 1.2.1 working-tree changes are not covered by that run.
 - The untracked `skills/` directory is external agent content and is not part of the app.
 
 ### Scope
@@ -277,14 +283,19 @@ Do not summarize a large diff as "various changes".
 
 ### Known issues to preserve or fix explicitly
 
-- Shortcut discovery runs during context-menu composition.
-- The icon cache is unbounded.
-- Unused Firebase/AppCheck dependencies remain in the build.
-- Backup rules are sample templates.
-- No instrumentation suite exists.
-- The GitHub Actions workflow has not yet run on GitHub.
-- Physical validation is owner-reported; landscape/wide layouts, API 25 fallback, and some
-  accessibility traversal paths still need independent coverage.
+- Phase 1.2.1 changes are uncommitted and not device-tested.
+- The icon cache is bounded in the Phase 1.2.1 working tree; memory has not been measured on a
+  low-memory device.
+- Backup rules are explicit and validated in the working tree but have not been exercised through a
+  cloud backup or restore.
+- Instrumentation tests exist under `app/src/androidTest` and compile, but no device or emulator was
+  attached to run them.
+- Bundled JPEGs and derived launcher mipmaps still have unresolved provenance; this is a release
+  blocker recorded in `THIRD_PARTY_NOTICES.md`.
+- The Phase 1.2.1 working-tree changes have not been validated by GitHub Actions; the last
+  successful run (#4, `41804893723`) covers only the committed baseline at `63cb0c5`.
+- Physical validation is owner-reported and predates Phase 1.2.1; landscape/wide layouts, API 25
+  fallback, and some accessibility traversal paths still need independent coverage.
 
 Do not silently "fix" these outside the requested scope. Report them.
 

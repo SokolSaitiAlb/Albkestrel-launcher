@@ -59,9 +59,11 @@ must still make its backup policy explicit rather than relying on sample templat
 
 ### Neutral / follow-up
 
-- Define the backup and data-extraction policy.
+- Backup and data-extraction policy defined in the uncommitted Phase 1.2.1 work; see
+  [../BACKUP_POLICY.md](../BACKUP_POLICY.md).
 - Provide explicit local export/import if cross-device portability becomes a requirement.
-- Remove unused Firebase/AppCheck dependencies, which contradict this decision.
+- Unused Firebase/AppCheck dependencies removed in the uncommitted Phase 1.2.1 work, consistent with
+  this decision.
 - Record any future network addition in a new ADR.
 
 ## Alternatives considered
@@ -83,8 +85,10 @@ but it is not part of the current architecture.
 
 ### Rely on Android backup only
 
-Accepted as the current platform default, but the backup rules are still sample templates and must
-be made intentional before release.
+Accepted as the current platform default. The backup policy is now explicit in the uncommitted
+Phase 1.2.1 work: the Room database, DataStore settings, and legacy SharedPreferences are included;
+disposable caches are excluded; cloud backup requires encryption; device-to-device transfer carries
+the same application data. See [../BACKUP_POLICY.md](../BACKUP_POLICY.md).
 
 ## References
 

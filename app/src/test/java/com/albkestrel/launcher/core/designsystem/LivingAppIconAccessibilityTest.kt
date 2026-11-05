@@ -2,10 +2,15 @@ package com.albkestrel.launcher.core.designsystem
 
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
+import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertHasClickAction
+import androidx.compose.ui.test.assertHeightIsAtLeast
+import androidx.compose.ui.test.assertWidthIsAtLeast
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performSemanticsAction
@@ -91,5 +96,41 @@ class LivingAppIconAccessibilityTest {
             .onNodeWithTag("app_icon_${app.id}")
             .assertHasClickAction()
             .assert(SemanticsMatcher.keyNotDefined(SemanticsActions.OnLongClick))
+    }
+
+    @Test
+    fun `icon exposes a button role with a spoken app label`() {
+        composeTestRule.setContent {
+            MaterialTheme {
+                LivingAppIcon(
+                    app = app,
+                    iconSize = 48.dp,
+                    onClick = {}
+                )
+            }
+        }
+
+        composeTestRule
+            .onNodeWithTag("app_icon_${app.id}")
+            .assert(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Button))
+            .assertContentDescriptionEquals("Open Gallery")
+    }
+
+    @Test
+    fun `icon meets the 48 dp minimum touch target`() {
+        composeTestRule.setContent {
+            MaterialTheme {
+                LivingAppIcon(
+                    app = app,
+                    iconSize = 24.dp,
+                    onClick = {}
+                )
+            }
+        }
+
+        composeTestRule
+            .onNodeWithTag("app_icon_${app.id}")
+            .assertWidthIsAtLeast(48.dp)
+            .assertHeightIsAtLeast(48.dp)
     }
 }

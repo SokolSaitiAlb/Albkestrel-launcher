@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -34,12 +35,18 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.albkestrel.launcher.R
 import com.albkestrel.launcher.domain.model.AnimationSpeed
 import com.albkestrel.launcher.domain.model.LauncherApp
 import com.albkestrel.launcher.domain.model.WorkspaceFolder
@@ -78,12 +85,20 @@ fun FolderIcon(
     val cornerRadius = iconSize * 0.28f
     val folderShape = RoundedCornerShape(cornerRadius)
 
+    val folderLabel = stringResource(R.string.a11y_open_folder, folder.title)
+
     Column(
         modifier = modifier
             .testTag("folder_icon_${folder.id}")
+            .sizeIn(minWidth = 48.dp, minHeight = 48.dp)
+            .semantics(mergeDescendants = true) {
+                role = Role.Button
+                contentDescription = folderLabel
+            }
             .clickable(
                 interactionSource = interactionSource,
                 indication = null,
+                role = Role.Button,
                 onClick = onClick
             )
             .scale(scale),

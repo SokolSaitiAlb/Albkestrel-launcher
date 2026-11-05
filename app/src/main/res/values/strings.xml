@@ -1,3 +1,30 @@
 <resources>
     <string name="app_name">AlbkestrelOS</string>
+
+    <!-- Accessibility labels for interactive controls. Visible copy remains in the Compose UI. -->
+    <string name="a11y_open_app">Open %1$s</string>
+    <string name="a11y_open_app_menu">Open app menu</string>
+    <string name="a11y_open_search">Open app search</string>
+    <string name="a11y_close_search">Close search</string>
+    <string name="a11y_clear_search">Clear search</string>
+    <string name="a11y_open_app_drawer">Open app drawer</string>
+    <string name="a11y_close_app_drawer">Close app drawer</string>
+    <string name="a11y_open_settings">Open launcher settings</string>
+    <string name="a11y_close_settings">Close launcher settings</string>
+    <string name="a11y_prototype_info">Open prototype information</string>
+    <string name="a11y_dismiss_dialog">Dismiss dialog</string>
+    <string name="a11y_close_folder">Close folder</string>
+    <string name="a11y_edit_folder_title">Edit folder title</string>
+    <string name="a11y_edit_folder_title_named">Edit folder title, %1$s</string>
+    <string name="a11y_save_folder_title">Save folder title</string>
+    <string name="a11y_battery_level">Battery %1$d percent</string>
+    <string name="a11y_battery_charging">Battery %1$d percent, charging</string>
+    <string name="a11y_launch_app">Launch %1$s</string>
+    <string name="a11y_open_folder">Open folder %1$s</string>
+    <string name="a11y_previous_track">Previous track</string>
+    <string name="a11y_play">Play</string>
+    <string name="a11y_pause">Pause</string>
+    <string name="a11y_next_track">Next track</string>
+    <string name="a11y_open_wellbeing_settings">Open wellbeing settings</string>
+    <string name="a11y_living_flow_principles">Open Living Flow principles</string>
 </resources>

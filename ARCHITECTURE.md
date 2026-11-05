@@ -336,15 +336,23 @@ The launcher does not currently have a crash-reporting or telemetry pipeline.
 - `RoomWorkspaceRepository` is tested with an in-memory Room database.
 - `LauncherViewModel` is tested with coroutine test dispatchers and a Robolectric application.
 - `LivingAppIcon` click and long-click semantics are tested through Robolectric/Compose.
-- Compose test tags exist on key surfaces, but there is no instrumentation suite yet.
+- Bounded icon-cache behaviour and clock-ticker timing are unit tested.
+- `FolderIcon` and extended `LivingAppIcon` semantics/48 dp targets are Robolectric tested.
+- Compose test tags exist on key surfaces. An `app/src/androidTest` accessibility suite exists and
+  compiles, but it has not been executed without a device.
 
 ## 12. Known architectural deviations and risks
 
 1. Manual dependency composition is simple but scales poorly if repositories multiply.
 2. `LauncherViewModel` is large and owns UI state, persistence coordination, haptics, and actions.
-3. Shortcut discovery runs during composition rather than in a background state flow.
-4. The icon cache is unbounded for the process lifetime.
+3. Shortcut discovery runs on `Dispatchers.IO` through `produceState` in the working tree; it still
+   belongs to the composition lifecycle rather than a long-lived state flow.
+4. The icon cache is bounded with `LruCache` in the working tree and cleared on package invalidation;
+   it has not been profiled on a low-memory device.
 5. Real notification badges are not wired.
 6. Dynamic color and wallpaper dim are persisted but not exposed in Settings.
-7. Unused Firebase/AppCheck dependencies are still in the build graph.
-8. No instrumentation tests cover Android system interactions.
+7. Firebase/AppCheck dependencies have been removed in the working tree; the merged debug manifest
+   is clean.
+8. No instrumentation test has been executed against Android system interactions; the suite compiles
+   only.
+9. Bundled JPEGs and derived launcher mipmaps have unresolved provenance and licensing.

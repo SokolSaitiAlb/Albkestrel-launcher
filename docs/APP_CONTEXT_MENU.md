@@ -253,8 +253,10 @@ Still pending:
 ## 10. Known limitations
 
 1. Menu placement uses an estimated height rather than a measured popup.
-2. Shortcut discovery is a synchronous query during composition.
+2. Shortcut discovery runs off-composition on `Dispatchers.IO` in the Phase 1.2.1 working tree, but it
+   is still scoped to the composition lifecycle rather than a long-lived state flow.
 3. Pause and Widgets remain unavailable by design.
-4. No instrumentation tests cover the menu.
+4. The `app/src/androidTest` accessibility suite compiles but does not cover the menu, and it has not
+   been executed without a device.
 5. Physical validation is owner-reported and does not yet cover every checklist item.
 6. Shortcut-host permission behavior varies by device and launcher role.

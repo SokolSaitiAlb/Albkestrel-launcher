@@ -164,7 +164,7 @@ plus the folder title. It uses the same press-scale behavior as app icons.
 - No icon-pack parsing.
 - No per-app icon overrides.
 - No themed-icon adaptation.
-- The icon cache is unbounded.
+- The icon cache is bounded by a heap-derived `LruCache` in the Phase 1.2.1 working tree.
 - Icon quality at every size is not covered by visual regression tests.
 
 See [ICON_ENGINE.md](ICON_ENGINE.md).

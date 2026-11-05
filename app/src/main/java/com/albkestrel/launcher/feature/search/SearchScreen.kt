@@ -48,10 +48,16 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.albkestrel.launcher.R
 import com.albkestrel.launcher.core.designsystem.LuminousSurface
 import com.albkestrel.launcher.core.designsystem.resolveAppIcon
 import com.albkestrel.launcher.domain.model.LauncherApp
@@ -76,10 +82,12 @@ fun SearchScreen(
     }
 
     val query = uiState.searchQuery
-    val matchingApps = if (query.isBlank()) {
-        emptyList()
-    } else {
-        AppSearch.filterByLabel(uiState.allApps, query)
+    val matchingApps = remember(uiState.allApps, query) {
+        if (query.isBlank()) {
+            emptyList()
+        } else {
+            AppSearch.filterByLabel(uiState.allApps, query)
+        }
     }
 
     Box(
@@ -120,7 +128,7 @@ fun SearchScreen(
                         leadingIcon = {
                             Icon(
                                 imageVector = Icons.Rounded.Search,
-                                contentDescription = "Search",
+                                contentDescription = null,
                                 tint = Color(0xFF00E5FF)
                             )
                         },
@@ -129,7 +137,7 @@ fun SearchScreen(
                                 IconButton(onClick = { viewModel.setSearchQuery("") }) {
                                     Icon(
                                         imageVector = Icons.Rounded.Clear,
-                                        contentDescription = "Clear search",
+                                        contentDescription = stringResource(R.string.a11y_clear_search),
                                         tint = Color.White.copy(alpha = 0.7f)
                                     )
                                 }
@@ -157,14 +165,14 @@ fun SearchScreen(
                     IconButton(
                         onClick = { viewModel.closeOverlay() },
                         modifier = Modifier
-                            .size(42.dp)
+                            .size(48.dp)
                             .clip(CircleShape)
                             .background(Color.White.copy(alpha = 0.08f))
                             .testTag("search_close_button")
                     ) {
                         Icon(
                             imageVector = Icons.Rounded.Close,
-                            contentDescription = "Close Search",
+                            contentDescription = stringResource(R.string.a11y_close_search),
                             tint = Color.White.copy(alpha = 0.85f),
                             modifier = Modifier.size(20.dp)
                         )
@@ -376,13 +384,18 @@ private fun SearchResultItem(
     app: LauncherApp,
     onClick: () -> Unit
 ) {
+    val launchLabel = stringResource(R.string.a11y_launch_app, app.name)
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(16.dp))
             .background(Color.White.copy(alpha = 0.05f))
             .border(1.dp, Color.White.copy(alpha = 0.10f), RoundedCornerShape(16.dp))
-            .clickable(onClick = onClick)
+            .semantics(mergeDescendants = true) {
+                role = Role.Button
+                contentDescription = launchLabel
+            }
+            .clickable(role = Role.Button, onClick = onClick)
             .padding(horizontal = 14.dp, vertical = 10.dp)
     ) {
         Row(
@@ -405,7 +418,7 @@ private fun SearchResultItem(
                 if (app.icon != null) {
                     Image(
                         bitmap = app.icon,
-                        contentDescription = app.name,
+                        contentDescription = null,
                         contentScale = ContentScale.Crop,
                         modifier = Modifier.fillMaxSize()
                     )
@@ -439,7 +452,7 @@ private fun SearchResultItem(
 
             Icon(
                 imageVector = Icons.Rounded.Launch,
-                contentDescription = "Launch",
+                contentDescription = null,
                 tint = Color(0xFF00E5FF).copy(alpha = 0.7f),
                 modifier = Modifier.size(18.dp)
             )

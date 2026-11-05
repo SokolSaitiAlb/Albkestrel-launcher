@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -45,9 +46,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.albkestrel.launcher.R
 import com.albkestrel.launcher.core.designsystem.LivingAppIcon
 import com.albkestrel.launcher.core.designsystem.LuminousSurface
 import com.albkestrel.launcher.domain.model.AppCategory
@@ -66,12 +73,15 @@ fun AppDrawerScreen(
     }
 
     var drawerSearchQuery by remember { mutableStateOf("") }
+    val closeDrawerLabel = stringResource(R.string.a11y_close_app_drawer)
 
     // Filter apps according to drawerCategory and drawerSearchQuery
-    val filteredApps = AppSearch.filterByLabel(
-        AppSearch.filterByCategory(uiState.allApps, uiState.drawerCategory),
-        drawerSearchQuery
-    )
+    val filteredApps = remember(uiState.allApps, uiState.drawerCategory, drawerSearchQuery) {
+        AppSearch.filterByLabel(
+            AppSearch.filterByCategory(uiState.allApps, uiState.drawerCategory),
+            drawerSearchQuery
+        )
+    }
 
     Box(
         modifier = modifier
@@ -103,25 +113,35 @@ fun AppDrawerScreen(
                 ) {
                     Box(
                         modifier = Modifier
-                            .width(44.dp)
-                            .height(5.dp)
-                            .clip(RoundedCornerShape(3.dp))
-                            .background(Color.White.copy(alpha = 0.35f))
-                            .clickable { viewModel.closeOverlay() }
-                    )
+                            .sizeIn(minWidth = 88.dp, minHeight = 48.dp)
+                            .semantics(mergeDescendants = true) {
+                                role = Role.Button
+                                contentDescription = closeDrawerLabel
+                            }
+                            .clickable(onClick = { viewModel.closeOverlay() }),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .width(44.dp)
+                                .height(5.dp)
+                                .clip(RoundedCornerShape(3.dp))
+                                .background(Color.White.copy(alpha = 0.35f))
+                        )
+                    }
 
                     IconButton(
                         onClick = { viewModel.closeOverlay() },
                         modifier = Modifier
                             .align(Alignment.CenterEnd)
-                            .size(36.dp)
+                            .size(48.dp)
                             .clip(CircleShape)
                             .background(Color.White.copy(alpha = 0.08f))
                             .testTag("drawer_close_button")
                     ) {
                         Icon(
                             imageVector = Icons.Rounded.Close,
-                            contentDescription = "Close Drawer",
+                            contentDescription = closeDrawerLabel,
                             tint = Color.White.copy(alpha = 0.8f),
                             modifier = Modifier.size(18.dp)
                         )
@@ -144,7 +164,7 @@ fun AppDrawerScreen(
                     leadingIcon = {
                         Icon(
                             imageVector = Icons.Rounded.Search,
-                            contentDescription = "Search",
+                            contentDescription = null,
                             tint = Color(0xFF00E5FF)
                         )
                     },
@@ -153,7 +173,7 @@ fun AppDrawerScreen(
                             IconButton(onClick = { drawerSearchQuery = "" }) {
                                 Icon(
                                     imageVector = Icons.Rounded.Clear,
-                                    contentDescription = "Clear search",
+                                    contentDescription = stringResource(R.string.a11y_clear_search),
                                     tint = Color.White.copy(alpha = 0.7f)
                                 )
                             }

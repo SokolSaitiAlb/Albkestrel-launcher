@@ -9,7 +9,7 @@ Milestone-based roadmap for Albkestrel Launcher. Status values are deliberately 
 - **Proposed** — architecture decision not yet accepted.
 - **Blocked** — depends on an unavailable Android capability or external decision.
 
-Snapshot: 2026-11-04, `migration-orca`.
+Snapshot: 2026-11-05, `migration-orca`.
 
 ## Milestone summary
 
@@ -18,7 +18,8 @@ Snapshot: 2026-11-04, `migration-orca`.
 | 1.0 | Persistent launcher foundation | HOME activity, Compose shell, Room workspace, DataStore settings, dock, folders, drawer, mock cards | Android SDK 36, JDK 17 | HOME intent works; layout survives restart; settings persist; debug build succeeds | Complete in `migration-orca` history |
 | 1.1 | Real installed-app integration | PackageManager discovery, real icons/labels, search, Room v3 metadata and migrations | Phase 1.0 | Launcher lists real launchable apps, excludes itself, launches them, survives package changes | Complete at `8747b09` |
 | 1.2 | Long-press app context menu | Anchored menu, app info, remove, uninstall, shortcuts, haptics, dismissal, policy guards | Phase 1.1 | Menu opens from every app surface; only supported actions appear; system uninstall blocked; tests pass | Complete at `157e446`; owner-reported Pixel 8a validation 12/12 |
-| 1.3 | Universal Widget System | Real `AppWidgetHost`, picker, binding, persistence, resize, lifecycle | Phase 1.2 accepted; ADR-003 accepted | A real third-party widget can be added, persisted, restored, resized, and removed without fake UI | Planned; ADR-003 proposed |
+| 1.2.1 | Phase 1.2 hardening | Firebase cleanup, explicit backup policy, bounded icon cache, off-main-thread shortcuts, accessibility and keyboard support, licensing audit | Phase 1.2 | Merged manifest has no unused SDK or network permission; backup XML validated; unit tests pass; accessibility contract tested; licensing blockers documented | Implemented, **uncommitted** (HEAD `63cb0c5`); device validation pending |
+| 1.3 | Universal Widget System | Real `AppWidgetHost`, picker, binding, persistence, resize, lifecycle | Phase 1.2 and 1.2.1 accepted; ADR-003 accepted | A real third-party widget can be added, persisted, restored, resized, and removed without fake UI | Planned; ADR-003 proposed |
 | 1.4 | Icon Appearance Engine | Icon packs, per-app overrides, adaptive shapes, themed icons, bounded caching | Phase 1.3 or explicit resequencing | At least one real icon pack works; fallback is deterministic; tests cover parsing and fallback | Planned |
 | 2.0 | Workspace editing and gestures | Drag-and-drop placement, add/remove picker, folder creation, page management | Stable grid model; accessibility review | User can arrange apps without corrupting persistence or overlapping items | Planned |
 | 2.1 | Search and shortcut expansion | Search ranking, shortcut surfacing, query history (local only) | Phase 1.2/1.4 | Search remains local, deterministic, and covered by tests | Planned |
@@ -34,6 +35,25 @@ Billing, is not a release requirement and must preserve the GPL rights of users 
 Code-level scope is committed as `157e446` and covered by unit tests. The project owner reports
 12/12 physical scenarios passed on a Google Pixel 8a. The milestone is not closed until it is
 independently re-validated where coverage is still thin.
+
+Phase 1.2.1 hardening exists in the working tree as **uncommitted** changes on top of HEAD
+`63cb0c5`. It is not durable and has not been device-tested. It removes unused Firebase/App Check
+scaffolding, defines the backup policy, bounds the icon cache, moves shortcut discovery off the
+composition thread, and expands accessibility and licensing coverage. See
+[docs/PROJECT_STATUS.md](docs/PROJECT_STATUS.md) and [docs/BACKUP_POLICY.md](docs/BACKUP_POLICY.md).
+
+- [x] Firebase, App Check, Google Services, and `.env` secrets plumbing removed; merged manifest
+      contains no Firebase/GMS/Play Core entry and no `INTERNET` permission (uncommitted).
+- [x] Explicit `backup_rules.xml` and `data_extraction_rules.xml`; both XML documents validate
+      (uncommitted).
+- [x] Icon cache bounded with `LruCache` and cleared on package changes (uncommitted).
+- [x] Shortcut discovery moved to `Dispatchers.IO` via `produceState` (uncommitted).
+- [x] 48 dp targets, roles, spoken labels, and keyboard activation on launcher surfaces
+      (uncommitted).
+- [x] SIL OFL 1.1 text added for Plus Jakarta Sans; asset hashes recorded (uncommitted).
+- [ ] Commit the Phase 1.2.1 hardening changes.
+- [ ] Independently execute the device/accessibility matrix on a Pixel 8a or equivalent.
+- [ ] Resolve the bundled JPEG and mipmap provenance before release.
 
 - [x] Long press on home, dock, drawer, and folder icons.
 - [x] Anchored menu with edge clamping and scroll bounds.
@@ -76,8 +96,10 @@ Phase 1.3 must not be marked complete unless all of the following are true:
 ## Sequencing rules
 
 - Phase 1.2 is committed as `157e446`; do not start Phase 1.3 or 1.4 until its remaining acceptance
-  items and ADR-003 are resolved.
-- Do not merge Phase 1.2 into `main` without explicit authorization and a reviewed commit.
+  items, the uncommitted Phase 1.2.1 hardening, and ADR-003 are resolved.
+- Phase 1.2.1 changes must be committed and independently validated before Phase 1.3 begins.
+- Do not merge Phase 1.2 or Phase 1.2.1 into `main` without explicit authorization and a reviewed
+  commit.
 - Do not hide incomplete work behind fake UI. If an Android capability is unavailable, omit the
   action and document why.
 - Architecture changes require an ADR under `docs/decisions/`.

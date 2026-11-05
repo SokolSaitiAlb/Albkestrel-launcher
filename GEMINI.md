@@ -14,7 +14,9 @@ active development branch is `migration-orca`; public `main` currently contains 
 scaffold. Phase 1.2 (long-press app context menu) is committed as `157e446`, and the GPL license and
 third-party notices are committed as `4b0f066`. The project owner reports 12/12 physical scenarios
 passed on a Google Pixel 8a. Phase 1.3 (widgets) and Phase 1.4 (icon engine) are planned, not
-implemented. The GitHub Actions workflow is added but has not yet run on GitHub.
+implemented. GitHub Actions run #4 (`41804893723`) succeeded on 2026-11-04 for the committed
+baseline at `63cb0c5`; the uncommitted Phase 1.2.1 working-tree changes have not been validated by
+CI.
 
 ## Non-negotiables
 

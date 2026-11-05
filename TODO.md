@@ -4,26 +4,28 @@ GitHub-compatible task list for Albkestrel Launcher. A task is checked only when
 evidence supports it: source code, tests, a build record, or a committed document. Uncommitted work
 is called out explicitly.
 
-Status snapshot: 2026-11-04, branch `migration-orca`. Phase 1.2 is committed as `157e446` and the
-GPL-3.0-or-later license and notices as `4b0f066`. The project owner reports 12/12 physical
-scenarios passed on a Google Pixel 8a.
+Status snapshot: 2026-11-05, branch `migration-orca`, HEAD `63cb0c5`. Phase 1.2 is committed as
+`157e446` and the GPL-3.0-or-later license and notices as `4b0f066`. Phase 1.2.1 hardening is
+present as **uncommitted working-tree changes**. The project owner reports 12/12 physical scenarios
+passed on a Google Pixel 8a; that report does not cover the uncommitted work.
 
 ## Critical bugs and blockers
 
-- [ ] Remove unused Firebase/AppCheck dependencies, BOMs, plugins, and `.env` plumbing before any
-      release. The launcher code does not use them, but dependency manifest merging can add
-      permissions and attack surface.
-- [ ] Verify the merged manifest after dependency cleanup. The source manifest declares only
-      `VIBRATE`; confirm the packaged APK does not request network or other unused permissions.
+- [x] Remove unused Firebase/AppCheck dependencies, BOMs, plugins, and `.env` plumbing. Removed in
+      the uncommitted Phase 1.2.1 work; the debug merged manifest contains no Firebase/GMS/Play Core
+      entry.
+- [x] Verify the merged manifest after dependency cleanup. The packaged debug manifest declares only
+      `VIBRATE`; no `INTERNET` or unused permission is present.
 - [x] Restore explicit click semantics in `LivingAppIcon`. Touch works through `pointerInput`;
       both click and long-click are now declared through semantics, and a focused Compose semantics
       test guards the contract.
-- [ ] Define an intentional backup policy. `android:allowBackup="true"` is set while
-      `backup_rules.xml` and `data_extraction_rules.xml` are still sample templates.
+- [x] Define an intentional backup policy. `backup_rules.xml` and `data_extraction_rules.xml` are
+      explicit, `docs/BACKUP_POLICY.md` records the decision, and both XML documents validate.
 - [ ] Establish the provenance and license of `albkestrel_launcher_icon.jpg`,
       `albkestrel_wallpaper.jpg`, and the launcher mipmaps derived from them. Record the result in
-      `THIRD_PARTY_NOTICES.md` or replace the artwork.
+      `THIRD_PARTY_NOTICES.md` or replace the artwork. **Unresolved release blocker.**
 - [x] Commit the reviewed Phase 1.2 implementation on `migration-orca` as `157e446`.
+- [ ] Commit the Phase 1.2.1 hardening changes after review.
 
 ## Phase 1.2 acceptance
 
@@ -112,42 +114,49 @@ Planned.
 
 ## Performance
 
-- [ ] Move shortcut discovery out of composition; it currently queries `LauncherApps`
-      synchronously when the context menu is composed.
+- [x] Move shortcut discovery out of composition; it now uses `produceState` on `Dispatchers.IO`.
 - [ ] Measure cold-start time to first home frame.
-- [ ] Bound the icon cache and measure memory on low-memory devices.
-- [ ] Confirm package queries stay off the main thread.
+- [x] Bound the icon cache with an `LruCache` sized from app heap and clear it on package changes;
+      measure memory on low-memory devices.
+- [x] Confirm package queries stay off the main thread.
 - [ ] Profile app-drawer scrolling with a large installed-app set.
-- [ ] Avoid unnecessary recomposition of the full workspace when only overlay state changes.
-- [ ] Review the one-second clock tick for battery impact.
+- [x] Memoize app search/drawer filtering with `remember` to avoid repeated work.
+- [x] Review the clock tick; it is minute-aligned and lifecycle-aware (`repeatOnLifecycle`).
 
 ## Accessibility
 
 - [x] Restore explicit click semantics in `LivingAppIcon`.
 - [x] Add click and long-click semantics for the shared app icon, with a focused semantics test.
 - [x] Owner-reported TalkBack click and long-press check on a Google Pixel 8a.
-- [ ] Add content descriptions or semantic roles for other custom clickable surfaces that use raw
-      `pointerInput`.
-- [ ] Verify minimum touch targets for all icon, menu, and close controls.
+- [x] Add content descriptions and semantic roles for custom clickable surfaces (`LivingAppIcon`,
+      `FolderIcon`, search, drawer, settings, folder modal, dialogs, glance widgets).
+- [x] Verify minimum 48 dp touch targets for icon, menu, and close controls.
 - [ ] Verify contrast for secondary text on translucent surfaces.
-- [ ] Verify reduced-motion mode disables or shortens all non-essential motion.
-- [ ] Test TalkBack traversal of home, drawer, folder, settings, and every context-menu row.
-- [ ] Test switch access and keyboard/D-pad navigation.
+- [x] Verify reduced-motion mode disables the infinite clock pulse.
+- [ ] Test TalkBack traversal of home, drawer, folder, settings, and every context-menu row on a
+      device. Compiled instrumentation tests exist but have not run.
+- [ ] Test switch access and keyboard/D-pad navigation on a device.
 - [ ] Support system font scaling without clipping.
 - [ ] Respect RTL layout.
+- [x] Extract accessibility labels to `strings.xml`.
 
 ## Testing
 
-- [ ] Create `app/src/androidTest` with instrumentation tests.
+- [x] Create `app/src/androidTest` with instrumentation tests.
 - [x] Add a Robolectric/Compose semantics test for `LivingAppIcon` click and long-click actions.
 - [ ] Add Compose UI tests for context-menu actions and dismissal.
 - [ ] Add instrumentation tests for Room migrations on device.
 - [ ] Add a device matrix for API 24, 25, 31, and the current target.
 - [ ] Add a test for package removal while the launcher is visible.
 - [ ] Add a release-build smoke test.
-- [x] Add the Android CI workflow for unit tests and debug assembly (not yet verified on GitHub).
+- [x] Add the Android CI workflow for unit tests and debug assembly.
 - [x] Configure debug APK and test-report artifact retention in the workflow.
-- [ ] Verify the workflow on GitHub before claiming CI is green.
+- [x] Verify the workflow on GitHub (run #4, `41804893723`, passed at `63cb0c5`).
+- [ ] Validate the uncommitted Phase 1.2.1 changes with a CI run before claiming CI is green.
+- [x] Add unit tests for the bounded icon cache and the clock ticker.
+- [x] Add unit tests for `FolderIcon` and extended `LivingAppIcon` semantics.
+- [x] Compile the `AccessibilityInstrumentationTest` suite with `assembleDebugAndroidTest`.
+- [ ] Execute the instrumentation suite on a physical device or emulator.
 
 ## Documentation
 
@@ -173,16 +182,19 @@ Planned.
 ## Release preparation
 
 - [x] Add the GPL-3.0-or-later `LICENSE` and project licensing declarations.
+- [x] Add the SIL OFL 1.1 text for Plus Jakarta Sans (`licenses/PlusJakartaSans-OFL.txt`) and record
+      asset SHA-256 hashes in `THIRD_PARTY_NOTICES.md`.
 - [ ] Complete the third-party dependency license audit and include required notices.
-- [ ] Resolve bundled image provenance before distributing the artwork.
-- [ ] Remove unused dependencies and verify the merged manifest.
+- [ ] Resolve bundled image provenance before distributing the artwork. **Release blocker.**
+- [x] Remove unused Firebase/AppCheck dependencies and verify the merged manifest.
 - [ ] Define versioning and bump `versionCode`/`versionName`.
 - [ ] Create and protect release signing material outside the repository.
 - [ ] Configure release signing through environment variables or a local keystore.
-- [ ] Finalize backup and data-extraction rules.
+- [x] Finalize backup and data-extraction rules (see `docs/BACKUP_POLICY.md`).
 - [ ] Run the full unit suite and a release build.
-- [ ] Run physical-device acceptance for the release scope.
-- [ ] Verify CI on the release commit.
+- [ ] Run physical-device acceptance for the release scope, following `docs/DEVICE_TEST_MATRIX.md`.
+- [ ] Verify CI on the release commit (run #4 covers only `63cb0c5`, not the uncommitted Phase 1.2.1
+      changes).
 - [ ] Write release notes from the changelog.
 - [ ] Tag the release only after explicit authorization.
 - [ ] Publish the artifact manually; the CI workflow does not publish releases.

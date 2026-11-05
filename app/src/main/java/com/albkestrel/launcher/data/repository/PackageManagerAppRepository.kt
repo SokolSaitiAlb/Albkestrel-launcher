@@ -20,6 +20,7 @@ import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.core.content.ContextCompat
 import androidx.core.graphics.drawable.toBitmap
+import com.albkestrel.launcher.core.common.IconMemoryCache
 import com.albkestrel.launcher.domain.contextmenu.AppShortcut
 import com.albkestrel.launcher.domain.model.AppCategory
 import com.albkestrel.launcher.domain.model.LauncherApp
@@ -42,7 +43,7 @@ class PackageManagerAppRepository(
 
     private val appContext = context.applicationContext
     private val cacheLock = Any()
-    private val iconCache = mutableMapOf<String, ImageBitmap?>()
+    private val iconCache = IconMemoryCache.forCurrentHeap()
     private val packageVersion = MutableStateFlow(0L)
 
     @Volatile
@@ -285,9 +286,7 @@ class PackageManagerAppRepository(
     }
 
     private fun loadIconCached(key: String, loader: () -> Drawable?): ImageBitmap? {
-        synchronized(iconCache) {
-            if (iconCache.containsKey(key)) return iconCache[key]
-        }
+        iconCache.get(key)?.let { return it }
 
         val icon = try {
             val drawable = loader() ?: return null
@@ -296,9 +295,10 @@ class PackageManagerAppRepository(
             drawable.toBitmap(sizePx, sizePx, Bitmap.Config.ARGB_8888).asImageBitmap()
         } catch (_: Exception) {
             null
-        }
+        } ?: return null
 
-        synchronized(iconCache) { iconCache[key] = icon }
+        // Do not cache failed decodes; a transient failure should be retried on the next refresh.
+        iconCache.put(key, icon)
         return icon
     }
 
@@ -319,7 +319,7 @@ class PackageManagerAppRepository(
     private fun invalidateCache() {
         synchronized(cacheLock) {
             cachedApps = null
-            synchronized(iconCache) { iconCache.clear() }
+            iconCache.clear()
         }
         packageVersion.update { it + 1 }
     }

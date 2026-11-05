@@ -62,17 +62,16 @@ sdk.dir=C\:\\Users\\you\\AppData\\Local\\Android\\Sdk
 
 Do not commit this file.
 
-## 5. Secrets and `.env`
+## 5. Secrets and environment files
 
-The build applies the Secrets Gradle plugin and reads `.env`, falling back to `.env.example`. The
-current launcher features do not require an API key.
+The Phase 1.2.1 working tree removes the Secrets Gradle plugin, the Google Services plugin,
+Firebase/App Check, and `.env.example`. The current launcher features do not require an API key or a
+`google-services.json`.
 
-- `.env` is ignored by Git.
-- `.env.example` contains only a commented placeholder.
-- The Google Services plugin is configured with `MissingGoogleServicesStrategy.WARN`, so a missing
-  `google-services.json` should not fail the build.
-- Do not add real keys to `.env.example`.
-- Unused Firebase/AppCheck dependencies are a cleanup item; see [SECURITY.md](../SECURITY.md).
+- Do not add a `.env`, service-account file, or real key to the repository.
+- If a future feature needs a secret, document the requirement and use a reviewed, non-committed
+  mechanism.
+- Never commit `local.properties`, keystores, or passwords.
 
 ## 6. Open the project
 
@@ -169,10 +168,13 @@ Check that the Gradle daemon JVM is also 17.
 Install the required SDK Platform 36 minor API package in SDK Manager. Do not lower `compileSdk`
 just to make the build pass.
 
-### Missing `google-services.json`
+### Empty app list or workspace
 
-The project is configured to warn rather than fail. If the behavior changes, do not add a fake
-configuration file; investigate the Google Services plugin configuration instead.
+The launcher is local-first: app discovery comes from `PackageManager`/`LauncherApps` on the device,
+and workspace state comes from the local Room database. If the app list or seeded workspace is
+empty, confirm the app is installed for the current user, the `MAIN`/`LAUNCHER` query is present,
+and package discovery has finished loading. Do not add cloud configuration, a
+`google-services.json`, or network permissions to work around it.
 
 ### Release signing failure
 

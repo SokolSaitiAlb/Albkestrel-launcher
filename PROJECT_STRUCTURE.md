@@ -96,6 +96,7 @@ com.albkestrel.launcher
 | File | Responsibility |
 | --- | --- |
 | `BatteryMonitor.kt` | Sticky battery broadcast converted to a `Flow<BatteryStatus>` |
+| `IconMemoryCache.kt` | Heap-bounded `LruCache` for decoded app icons with no negative caching |
 
 ## `core/designsystem`
 
@@ -132,7 +133,7 @@ com.albkestrel.launcher
 
 | File | Responsibility |
 | --- | --- |
-| `PackageManagerAppRepository.kt` | Installed-app discovery, icon cache, package broadcasts, launch, details, uninstall, shortcuts |
+| `PackageManagerAppRepository.kt` | Installed-app discovery, bounded icon cache, package broadcasts, launch, details, uninstall, shortcuts |
 | `InstalledAppsMapper.kt` | Deterministic mapping from resolved launcher activities to `LauncherApp` |
 | `RoomWorkspaceRepository.kt` | Bootstrap, observation, collision-safe placement, folder cleanup, remove-from-workspace |
 
@@ -215,8 +216,8 @@ com.albkestrel.launcher
 | `res/values/colors.xml` | Base Android colors |
 | `res/values/strings.xml` | App label |
 | `res/values/themes.xml` | Android launch theme |
-| `res/xml/backup_rules.xml` | Android 11-and-lower backup template |
-| `res/xml/data_extraction_rules.xml` | Android 12+ backup/transfer template |
+| `res/xml/backup_rules.xml` | Explicit Android 11-and-lower backup include/exclude rules |
+| `res/xml/data_extraction_rules.xml` | Explicit Android 12+ cloud-backup and device-transfer rules |
 
 ## Tests
 
@@ -232,10 +233,20 @@ framework behavior is needed.
 | `WorkspaceRepositoryTest.kt` | Bootstrap, preservation, migrations, collisions, folders, remove-from-workspace |
 | `InstalledAppsMappingTest.kt` | Mapping, exclusion, sorting, deduplication, fallbacks |
 | `PackageManagerAppRepositoryTest.kt` | Launch intents, broadcasts, details, uninstall, shortcuts |
-| `LivingAppIconAccessibilityTest.kt` | Click/long-click semantics and no-long-press fallback |
+| `LivingAppIconAccessibilityTest.kt` | Click/long-click semantics, role, label, 48 dp target, no-long-press fallback |
+| `FolderIconAccessibilityTest.kt` | Folder role, click action, 48 dp target |
+| `IconMemoryCacheTest.kt` | Bounded cache, eviction, no negative caching |
+| `ClockTickerTest.kt` | Minute-aligned delay and reduced-motion pulse gating |
 | `AppSearchTest.kt` | Label filtering, ordering, categories, empty results |
 
-There is no `app/src/androidTest` source set yet.
+Instrumentation tests live under `app/src/androidTest`:
+
+| File | Coverage |
+| --- | --- |
+| `accessibility/AccessibilityInstrumentationTest.kt` | Device-side role, label, click, and 48 dp checks |
+
+The instrumentation suite compiles with `:app:assembleDebugAndroidTest` but has not been executed
+because no device or emulator was attached. See [docs/DEVICE_TEST_MATRIX.md](docs/DEVICE_TEST_MATRIX.md).
 
 ## Build files
 
@@ -248,7 +259,6 @@ There is no `app/src/androidTest` source set yet.
 | `gradle/wrapper/*` | Gradle 9.3.1 wrapper |
 | `gradle.properties` | JVM and Android build settings |
 | `metadata.json` | AI Studio project metadata; not used by the launcher at runtime |
-| `.env.example` | Secrets plugin template; no launcher feature requires a key |
 
 ## Documentation map
 
@@ -260,6 +270,8 @@ There is no `app/src/androidTest` source set yet.
 | [MASTER_PLAN.md](MASTER_PLAN.md) | Long-term vision and engineering strategy |
 | [ARCHITECTURE.md](ARCHITECTURE.md) | Actual layer architecture and diagrams |
 | [docs/PROJECT_STATUS.md](docs/PROJECT_STATUS.md) | Current verified state and risks |
+| [docs/BACKUP_POLICY.md](docs/BACKUP_POLICY.md) | Backup/transfer data policy and validation |
+| [docs/DEVICE_TEST_MATRIX.md](docs/DEVICE_TEST_MATRIX.md) | Reproducible device, accessibility, backup, and performance checks |
 | [docs/APP_CONTEXT_MENU.md](docs/APP_CONTEXT_MENU.md) | Phase 1.2 behavior and limits |
 | [docs/WIDGET_ARCHITECTURE.md](docs/WIDGET_ARCHITECTURE.md) | Proposed widget-host architecture |
 | [docs/ICON_ENGINE.md](docs/ICON_ENGINE.md) | Current icon handling and proposed engine |
