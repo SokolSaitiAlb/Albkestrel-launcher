@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -23,11 +24,18 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.albkestrel.launcher.R
 import com.albkestrel.launcher.core.designsystem.LivingAppIcon
 import com.albkestrel.launcher.core.designsystem.LuminousSurface
 import com.albkestrel.launcher.domain.model.AnimationSpeed
@@ -42,39 +50,53 @@ fun LuminousDock(
     animationSpeed: AnimationSpeed,
     modifier: Modifier = Modifier,
     onAppClick: (LauncherApp) -> Unit,
-    onOpenDrawer: () -> Unit
+    onOpenDrawer: () -> Unit,
+    onAppLongPress: (LauncherApp, Offset) -> Unit = { _, _ -> }
 ) {
+    val openDrawerLabel = stringResource(R.string.a11y_open_app_drawer)
     Column(
         modifier = modifier
             .fillMaxWidth()
             .testTag("luminous_dock"),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Subtle living drawer handle pill
-        Row(
+        // Subtle living drawer handle pill. The outer box provides a 48 dp touch target while the
+        // visible pill keeps its compact size.
+        Box(
             modifier = Modifier
-                .clip(RoundedCornerShape(12.dp))
-                .clickable(onClick = onOpenDrawer)
-                .background(Color.White.copy(alpha = 0.14f))
-                .padding(horizontal = 12.dp, vertical = 4.dp),
-            verticalAlignment = Alignment.CenterVertically
+                .testTag("dock_open_drawer")
+                .sizeIn(minWidth = 48.dp, minHeight = 48.dp)
+                .semantics(mergeDescendants = true) {
+                    role = Role.Button
+                    contentDescription = openDrawerLabel
+                }
+                .clickable(role = Role.Button, onClick = onOpenDrawer),
+            contentAlignment = Alignment.Center
         ) {
-            Icon(
-                imageVector = Icons.Rounded.KeyboardArrowUp,
-                contentDescription = "Swipe up for apps",
-                tint = Color.White.copy(alpha = 0.85f),
-                modifier = Modifier.size(14.dp)
-            )
-            Spacer(modifier = Modifier.width(4.dp))
-            Text(
-                text = "SWIPE UP",
-                style = MaterialTheme.typography.labelSmall.copy(
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 9.5.sp,
-                    letterSpacing = 1.sp
-                ),
-                color = Color.White.copy(alpha = 0.85f)
-            )
+            Row(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(Color.White.copy(alpha = 0.14f))
+                    .padding(horizontal = 12.dp, vertical = 4.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Icons.Rounded.KeyboardArrowUp,
+                    contentDescription = null,
+                    tint = Color.White.copy(alpha = 0.85f),
+                    modifier = Modifier.size(14.dp)
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+                Text(
+                    text = "SWIPE UP",
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 9.5.sp,
+                        letterSpacing = 1.sp
+                    ),
+                    color = Color.White.copy(alpha = 0.85f)
+                )
+            }
         }
 
         Spacer(modifier = Modifier.height(10.dp))
@@ -104,7 +126,10 @@ fun LuminousDock(
                             labelColor = Color.White,
                             animationSpeed = animationSpeed,
                             isDimmed = !item.isInstalled,
-                            onClick = { onAppClick(app) }
+                            onClick = { onAppClick(app) },
+                            onLongPress = { pressedApp, anchorPosition ->
+                                onAppLongPress(pressedApp, anchorPosition)
+                            }
                         )
                     }
                 }

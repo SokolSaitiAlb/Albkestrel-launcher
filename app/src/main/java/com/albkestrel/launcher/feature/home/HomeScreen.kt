@@ -45,6 +45,11 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -68,6 +73,7 @@ fun HomeScreen(
         initialPage = uiState.homePageIndex,
         pageCount = { 2 }
     )
+    val openSearchLabel = stringResource(R.string.a11y_open_search)
 
     LaunchedEffect(pagerState) {
         snapshotFlow { pagerState.currentPage }.collect { page ->
@@ -138,9 +144,13 @@ fun HomeScreen(
                 LuminousSurface(
                     modifier = Modifier
                         .weight(1f)
-                        .height(44.dp)
+                        .height(48.dp)
                         .testTag("quick_search_pill")
-                        .clickable {
+                        .semantics(mergeDescendants = true) {
+                            role = Role.Button
+                            contentDescription = openSearchLabel
+                        }
+                        .clickable(role = Role.Button) {
                             viewModel.setOverlay(LauncherOverlay.Search)
                         },
                     shape = RoundedCornerShape(22.dp),
@@ -155,13 +165,13 @@ fun HomeScreen(
                     ) {
                         Icon(
                             imageVector = Icons.Rounded.Search,
-                            contentDescription = "Search",
+                            contentDescription = null,
                             tint = Color.White.copy(alpha = 0.75f),
                             modifier = Modifier.size(18.dp)
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "Search AlbkestrelOS apps...",
+                            text = "Search installed apps...",
                             style = MaterialTheme.typography.bodyMedium,
                             color = Color.White.copy(alpha = 0.65f),
                             fontSize = 13.5.sp
@@ -177,14 +187,14 @@ fun HomeScreen(
                         viewModel.setOverlay(LauncherOverlay.PrototypeInfo)
                     },
                     modifier = Modifier
-                        .size(42.dp)
+                        .size(48.dp)
                         .clip(CircleShape)
                         .background(Color.White.copy(alpha = 0.14f))
                         .testTag("prototype_info_button")
                 ) {
                     Icon(
                         imageVector = Icons.Rounded.Info,
-                        contentDescription = "Prototype Info",
+                        contentDescription = stringResource(R.string.a11y_prototype_info),
                         tint = Color(0xFF00E5FF),
                         modifier = Modifier.size(20.dp)
                     )
@@ -198,14 +208,14 @@ fun HomeScreen(
                         viewModel.setOverlay(LauncherOverlay.Settings)
                     },
                     modifier = Modifier
-                        .size(42.dp)
+                        .size(48.dp)
                         .clip(CircleShape)
                         .background(Color.White.copy(alpha = 0.14f))
                         .testTag("settings_button")
                 ) {
                     Icon(
                         imageVector = Icons.Rounded.Settings,
-                        contentDescription = "Launcher Settings",
+                        contentDescription = stringResource(R.string.a11y_open_settings),
                         tint = Color.White,
                         modifier = Modifier.size(20.dp)
                     )
@@ -275,6 +285,9 @@ fun HomeScreen(
                 onAppClick = { app -> viewModel.onAppClicked(app) },
                 onOpenDrawer = {
                     viewModel.setOverlay(LauncherOverlay.AppDrawer)
+                },
+                onAppLongPress = { pressedApp, anchorPosition ->
+                    viewModel.onAppLongPressed(pressedApp, anchorPosition)
                 }
             )
 
@@ -300,19 +313,14 @@ private fun WorkspaceMainPage(
         // Clock & Date Widget with real battery telemetry
         ClockDateWidget(
             batteryStatus = uiState.batteryStatus,
-            onWidgetClick = {
-                uiState.allApps.find { it.id == "app_clock" }?.let { viewModel.onAppClicked(it) }
-            }
+            animationSpeed = uiState.settings.animationSpeed
         )
 
         Spacer(modifier = Modifier.height(10.dp))
 
         // Weather Mock Widget
         WeatherMockWidget(
-            weather = uiState.weather,
-            onClick = {
-                uiState.allApps.find { it.id == "app_weather" }?.let { viewModel.onAppClicked(it) }
-            }
+            weather = uiState.weather
         )
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -343,7 +351,10 @@ private fun WorkspaceMainPage(
                                         labelColor = Color.White,
                                         animationSpeed = uiState.settings.animationSpeed,
                                         isDimmed = !item.isInstalled,
-                                        onClick = { viewModel.onAppClicked(app) }
+                                        onClick = { viewModel.onAppClicked(app) },
+                                        onLongPress = { pressedApp, anchorPosition ->
+                                            viewModel.onAppLongPressed(pressedApp, anchorPosition)
+                                        }
                                     )
                                 }
                             }
@@ -429,10 +440,15 @@ private fun WorkspaceGlancePage(
         )
 
         // AlbkestrelOS Intelligence Quick Note Card
+        val livingFlowLabel = stringResource(R.string.a11y_living_flow_principles)
         LuminousSurface(
             modifier = Modifier
                 .fillMaxWidth()
-                .clickable {
+                .semantics(mergeDescendants = true) {
+                    role = Role.Button
+                    contentDescription = livingFlowLabel
+                }
+                .clickable(role = Role.Button) {
                     viewModel.setOverlay(LauncherOverlay.PrototypeInfo)
                 },
             shape = RoundedCornerShape(24.dp),

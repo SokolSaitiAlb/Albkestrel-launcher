@@ -2,7 +2,6 @@ package com.albkestrel.launcher.feature.home
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -37,14 +36,12 @@ import com.albkestrel.launcher.domain.model.WeatherMockData
 @Composable
 fun WeatherMockWidget(
     weather: WeatherMockData,
-    modifier: Modifier = Modifier,
-    onClick: () -> Unit = {}
+    modifier: Modifier = Modifier
 ) {
     LuminousSurface(
         modifier = modifier
             .fillMaxWidth()
-            .testTag("weather_mock_widget")
-            .clickable(onClick = onClick),
+            .testTag("weather_mock_widget"),
         shape = RoundedCornerShape(26.dp),
         backgroundColor = Color(0xFF0F172A).copy(alpha = 0.50f),
         borderColor = Color(0xFF38BDF8).copy(alpha = 0.35f)
@@ -63,7 +60,7 @@ fun WeatherMockWidget(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
                         imageVector = Icons.Rounded.LocationOn,
-                        contentDescription = "Location",
+                        contentDescription = null,
                         tint = Color(0xFF38BDF8),
                         modifier = Modifier.size(15.dp)
                     )
@@ -142,7 +139,7 @@ fun WeatherMockWidget(
                 ) {
                     Icon(
                         imageVector = Icons.Rounded.WbSunny,
-                        contentDescription = "Weather condition",
+                        contentDescription = null,
                         tint = Color.White,
                         modifier = Modifier.size(32.dp)
                     )

@@ -1,0 +1,135 @@
+name: Bug report
+description: Report a defect in Albkestrel Launcher
+title: "[Bug]: "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for reporting a bug. Do not include secrets, signing material, personal data, or
+        vulnerability details in a public issue. For security issues, follow SECURITY.md.
+
+  - type: checkboxes
+    id: preflight
+    attributes:
+      label: Preflight checks
+      options:
+        - label: I searched existing issues for a duplicate.
+          required: true
+        - label: I read docs/PROJECT_STATUS.md and understand which features exist.
+          required: true
+        - label: This is not a security vulnerability.
+          required: true
+
+  - type: dropdown
+    id: branch
+    attributes:
+      label: Build source
+      description: Which branch or build produced the issue?
+      options:
+        - migration-orca development build
+        - main scaffold
+        - Self-built from another commit
+        - Not sure
+    validations:
+      required: true
+
+  - type: input
+    id: commit
+    attributes:
+      label: Commit or version
+      description: Commit SHA, branch, or version name. Do not guess.
+      placeholder: e.g. 8747b09
+    validations:
+      required: true
+
+  - type: input
+    id: device
+    attributes:
+      label: Device and Android version
+      placeholder: e.g. Pixel 7, Android 15 (API 35)
+    validations:
+      required: true
+
+  - type: dropdown
+    id: home_role
+    attributes:
+      label: Is Albkestrel set as the home app?
+      options:
+        - "Yes"
+        - "No"
+        - Not applicable
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open the app drawer
+        2. Long press an app
+        3. ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs or screenshots
+      description: Paste relevant logcat output or attach screenshots. Remove personal data.
+      render: text
+    validations:
+      required: false
+
+  - type: dropdown
+    id: frequency
+    attributes:
+      label: Frequency
+      options:
+        - Always
+        - Often
+        - Sometimes
+        - Once
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: affected_area
+    attributes:
+      label: Affected area
+      options:
+        - label: Home screen or dock
+        - label: App drawer or search
+        - label: Folder modal
+        - label: App context menu
+        - label: Settings
+        - label: Workspace persistence or migration
+        - label: App launch, app info, or uninstall
+        - label: Shortcuts
+        - label: Accessibility or haptics
+        - label: Build or CI
+        - label: Other
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional context
+      description: Anything else that helps reproduce or explain the issue.
+    validations:
+      required: false

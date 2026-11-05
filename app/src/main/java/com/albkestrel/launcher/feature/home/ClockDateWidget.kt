@@ -7,7 +7,6 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -40,50 +39,74 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.repeatOnLifecycle
+import com.albkestrel.launcher.R
 import com.albkestrel.launcher.core.common.BatteryStatus
 import com.albkestrel.launcher.core.designsystem.LuminousSurface
+import com.albkestrel.launcher.domain.model.AnimationSpeed
 import kotlinx.coroutines.delay
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
+private const val MILLIS_PER_MINUTE = 60_000L
+
+/**
+ * Milliseconds until the next wall-clock minute boundary. Exposed for deterministic tests so a
+ * missed minute cannot regress into a one-second recomposition loop.
+ */
+internal fun millisUntilNextMinute(nowMillis: Long): Long {
+    val elapsedInMinute = Math.floorMod(nowMillis, MILLIS_PER_MINUTE)
+    return if (elapsedInMinute == 0L) MILLIS_PER_MINUTE else MILLIS_PER_MINUTE - elapsedInMinute
+}
+
 @Composable
 fun ClockDateWidget(
     batteryStatus: BatteryStatus,
     modifier: Modifier = Modifier,
-    onWidgetClick: () -> Unit = {}
+    animationSpeed: AnimationSpeed = AnimationSpeed.FLUID_SPRING
 ) {
     var currentTime by remember { mutableStateOf(Date()) }
+    val lifecycleOwner = LocalLifecycleOwner.current
 
-    LaunchedEffect(Unit) {
-        while (true) {
-            currentTime = Date()
-            delay(1000L)
+    // Update exactly when the displayed minute changes, and stop the ticker while the launcher is
+    // not resumed. The clock is still refreshed immediately when the lifecycle resumes.
+    LaunchedEffect(lifecycleOwner) {
+        lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+            while (true) {
+                val now = Date()
+                currentTime = now
+                delay(millisUntilNextMinute(now.time))
+            }
         }
     }
 
     val timeFormat = remember { SimpleDateFormat("HH:mm", Locale.getDefault()) }
     val dateFormat = remember { SimpleDateFormat("EEEE, MMMM d", Locale.getDefault()) }
 
-    val infiniteTransition = rememberInfiniteTransition(label = "pulse")
-    val dotAlpha by infiniteTransition.animateFloat(
-        initialValue = 0.3f,
-        targetValue = 1.0f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(1000),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "dot_alpha"
+    val dotAlpha = rememberPulseAlpha(
+        enabled = animationSpeed != AnimationSpeed.REDUCED_MOTION
+    )
+
+    // The Wi-Fi and cellular glyphs are decorative mock indicators, so they are hidden from
+    // TalkBack. Battery is real telemetry and is announced as a single readable value.
+    val batteryLabel = stringResource(
+        if (batteryStatus.isCharging) R.string.a11y_battery_charging else R.string.a11y_battery_level,
+        batteryStatus.percentage
     )
 
     LuminousSurface(
         modifier = modifier
             .fillMaxWidth()
-            .testTag("clock_date_widget")
-            .clickable(onClick = onWidgetClick),
+            .testTag("clock_date_widget"),
         shape = RoundedCornerShape(26.dp),
         backgroundColor = Color.Black.copy(alpha = 0.28f),
         borderColor = Color.White.copy(alpha = 0.20f)
@@ -125,20 +148,25 @@ fun ClockDateWidget(
                 ) {
                     Icon(
                         imageVector = Icons.Rounded.Wifi,
-                        contentDescription = "Wifi",
+                        contentDescription = null,
                         tint = Color.White.copy(alpha = 0.7f),
                         modifier = Modifier.size(14.dp)
                     )
                     Icon(
                         imageVector = Icons.Rounded.SignalCellularAlt,
-                        contentDescription = "Cellular",
+                        contentDescription = null,
                         tint = Color.White.copy(alpha = 0.7f),
                         modifier = Modifier.size(14.dp)
                     )
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.semantics(mergeDescendants = true) {
+                            contentDescription = batteryLabel
+                        }
+                    ) {
                         Icon(
                             imageVector = if (batteryStatus.isCharging) Icons.Rounded.BatteryChargingFull else Icons.Rounded.BatteryStd,
-                            contentDescription = "Battery",
+                            contentDescription = null,
                             tint = if (batteryStatus.percentage <= 20) Color(0xFFEF4444) else Color(0xFF10B981),
                             modifier = Modifier.size(14.dp)
                         )
@@ -209,4 +237,21 @@ fun ClockDateWidget(
             }
         }
     }
+}
+
+@Composable
+private fun rememberPulseAlpha(enabled: Boolean): Float {
+    if (!enabled) return 1f
+
+    val infiniteTransition = rememberInfiniteTransition(label = "pulse")
+    val dotAlpha by infiniteTransition.animateFloat(
+        initialValue = 0.3f,
+        targetValue = 1.0f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1000),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "dot_alpha"
+    )
+    return dotAlpha
 }

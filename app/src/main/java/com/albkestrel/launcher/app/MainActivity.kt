@@ -24,10 +24,10 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.albkestrel.launcher.core.designsystem.AlbkestrelTheme
 import com.albkestrel.launcher.domain.model.AnimationSpeed
 import com.albkestrel.launcher.feature.appdrawer.AppDrawerScreen
-import com.albkestrel.launcher.feature.common.AppLaunchPreviewDialog
 import com.albkestrel.launcher.feature.common.LauncherOverlay
 import com.albkestrel.launcher.feature.common.LauncherUiState
 import com.albkestrel.launcher.feature.common.LauncherViewModel
+import com.albkestrel.launcher.feature.common.AppContextMenuScreen
 import com.albkestrel.launcher.feature.common.PrototypeInfoDialog
 import com.albkestrel.launcher.feature.folders.FolderModalScreen
 import com.albkestrel.launcher.feature.home.HomeScreen
@@ -192,17 +192,17 @@ fun LauncherRoot(
             )
         }
 
-        // Modal: App Launch Preview Dialog
+        // Modal: App Context Menu (long-press on an installed app icon)
         AnimatedVisibility(
-            visible = activeOverlay is LauncherOverlay.AppLaunchPreview,
-            enter = scaleIn(animationSpec = enterScaleSpec, initialScale = 0.9f) + fadeIn(),
-            exit = scaleOut(animationSpec = enterScaleSpec, targetScale = 0.9f) + fadeOut()
+            visible = activeOverlay is LauncherOverlay.AppContextMenu,
+            enter = scaleIn(animationSpec = enterScaleSpec, initialScale = 0.92f) + fadeIn(),
+            exit = scaleOut(animationSpec = enterScaleSpec, targetScale = 0.92f) + fadeOut()
         ) {
-            if (activeOverlay is LauncherOverlay.AppLaunchPreview) {
-                AppLaunchPreviewDialog(
+            if (activeOverlay is LauncherOverlay.AppContextMenu) {
+                AppContextMenuScreen(
                     app = activeOverlay.app,
-                    wasLaunchedDirectly = activeOverlay.wasLaunchedDirectly,
-                    onDismiss = { viewModel.closeOverlay() }
+                    anchorPosition = activeOverlay.anchorPosition,
+                    viewModel = viewModel
                 )
             }
         }

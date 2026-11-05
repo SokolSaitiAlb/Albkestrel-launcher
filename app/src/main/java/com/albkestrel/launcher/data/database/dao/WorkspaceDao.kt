@@ -49,6 +49,9 @@ interface WorkspaceDao {
     @Query("DELETE FROM workspace_items WHERE id = :id")
     suspend fun deleteItemById(id: String)
 
+    @Query("DELETE FROM workspace_items WHERE packageName IN (:packageNames)")
+    suspend fun deleteItemsByPackageNames(packageNames: List<String>)
+
     @Query("DELETE FROM workspace_items WHERE folderId = :folderId")
     suspend fun deleteItemsByFolderId(folderId: String)
 

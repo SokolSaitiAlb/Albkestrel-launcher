@@ -40,8 +40,14 @@ interface FolderDao {
     @Query("SELECT * FROM folder_items ORDER BY folderId ASC, position ASC")
     fun observeFolderItems(): Flow<List<FolderItemEntity>>
 
+    @Query("SELECT * FROM folder_items ORDER BY folderId ASC, position ASC")
+    suspend fun getAllFolderItems(): List<FolderItemEntity>
+
     @Query("SELECT * FROM folder_items WHERE folderId = :folderId ORDER BY position ASC")
     suspend fun getFolderItems(folderId: String): List<FolderItemEntity>
+
+    @Query("DELETE FROM folder_items WHERE packageName IN (:packageNames)")
+    suspend fun deleteFolderItemsByPackageNames(packageNames: List<String>)
 
     @Query("SELECT COUNT(*) FROM folder_items WHERE folderId = :folderId AND packageName = :packageName")
     suspend fun countFolderItem(folderId: String, packageName: String): Int

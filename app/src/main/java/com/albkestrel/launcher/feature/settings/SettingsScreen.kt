@@ -12,12 +12,14 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -42,9 +44,12 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.albkestrel.launcher.R
 import com.albkestrel.launcher.core.designsystem.LuminousSurface
 import com.albkestrel.launcher.domain.model.AlbkestrelThemeMode
 import com.albkestrel.launcher.domain.model.AnimationSpeed
@@ -109,14 +114,14 @@ fun SettingsScreen(
                     IconButton(
                         onClick = { viewModel.closeOverlay() },
                         modifier = Modifier
-                            .size(36.dp)
+                            .size(48.dp)
                             .clip(CircleShape)
                             .background(Color.White.copy(alpha = 0.08f))
                             .testTag("settings_close_button")
                     ) {
                         Icon(
                             imageVector = Icons.Rounded.Close,
-                            contentDescription = "Close Settings",
+                            contentDescription = stringResource(R.string.a11y_close_settings),
                             tint = Color.White.copy(alpha = 0.8f),
                             modifier = Modifier.size(18.dp)
                         )
@@ -229,6 +234,7 @@ fun SettingsScreen(
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
+                                .heightIn(min = 48.dp)
                                 .clip(RoundedCornerShape(16.dp))
                                 .background(
                                     if (isSelected) Color(0xFF00E5FF).copy(alpha = 0.16f)
@@ -239,7 +245,11 @@ fun SettingsScreen(
                                     if (isSelected) Color(0xFF00E5FF) else Color.White.copy(alpha = 0.12f),
                                     RoundedCornerShape(16.dp)
                                 )
-                                .clickable { viewModel.updateAnimationSpeed(animSpeed) }
+                                .selectable(
+                                    selected = isSelected,
+                                    role = Role.RadioButton,
+                                    onClick = { viewModel.updateAnimationSpeed(animSpeed) }
+                                )
                                 .padding(horizontal = 16.dp, vertical = 12.dp)
                         ) {
                             Column {
@@ -335,7 +345,7 @@ fun SettingsScreen(
                         .clip(RoundedCornerShape(18.dp))
                         .background(Color(0xFF00E5FF).copy(alpha = 0.12f))
                         .border(1.dp, Color(0xFF00E5FF).copy(alpha = 0.35f), RoundedCornerShape(18.dp))
-                        .clickable {
+                        .clickable(role = Role.Button) {
                             viewModel.setOverlay(LauncherOverlay.PrototypeInfo)
                         }
                         .padding(16.dp)
@@ -403,6 +413,7 @@ private fun SelectablePill(
 ) {
     Box(
         modifier = modifier
+            .heightIn(min = 48.dp)
             .clip(RoundedCornerShape(14.dp))
             .background(
                 if (isSelected) Color(0xFF00E5FF).copy(alpha = 0.18f)
@@ -413,7 +424,11 @@ private fun SelectablePill(
                 if (isSelected) Color(0xFF00E5FF) else Color.White.copy(alpha = 0.12f),
                 RoundedCornerShape(14.dp)
             )
-            .clickable(onClick = onClick)
+            .selectable(
+                selected = isSelected,
+                role = Role.RadioButton,
+                onClick = onClick
+            )
             .padding(horizontal = 12.dp, vertical = 10.dp),
         contentAlignment = Alignment.Center
     ) {

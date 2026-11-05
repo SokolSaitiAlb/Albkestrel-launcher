@@ -17,4 +17,10 @@ interface WorkspaceRepository {
     suspend fun removeItem(itemId: String)
     suspend fun deleteFolder(folderId: String)
     suspend fun addAppToFolder(folderId: String, packageName: String): Boolean
+
+    /**
+     * Removes the launcher's reference to an installed app without touching the underlying
+     * Android package. Used by the long-press context menu's "Remove" action.
+     */
+    suspend fun removeAppFromWorkspace(packageName: String): Boolean
 }

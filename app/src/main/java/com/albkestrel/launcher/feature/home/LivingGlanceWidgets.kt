@@ -34,10 +34,16 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.albkestrel.launcher.R
 import com.albkestrel.launcher.core.designsystem.LuminousSurface
 
 @Composable
@@ -48,6 +54,11 @@ fun MediaGlanceWidget(
     modifier: Modifier = Modifier,
     onTogglePlay: () -> Unit
 ) {
+    // Previous/next navigation is not implemented. Both side controls perform the same
+    // play/pause action as the centre control, so they must announce that real action rather
+    // than claim track navigation the widget cannot provide.
+    val playPauseLabel = stringResource(if (isPlaying) R.string.a11y_pause else R.string.a11y_play)
+
     LuminousSurface(
         modifier = modifier
             .fillMaxWidth()
@@ -149,10 +160,16 @@ fun MediaGlanceWidget(
 
                 // Controls
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    IconButton(onClick = onTogglePlay, modifier = Modifier.size(36.dp)) {
+                    IconButton(
+                        onClick = onTogglePlay,
+                        modifier = Modifier
+                            .size(48.dp)
+                            .testTag("media_previous_control")
+                            .semantics { contentDescription = playPauseLabel }
+                    ) {
                         Icon(
                             imageVector = Icons.Rounded.SkipPrevious,
-                            contentDescription = "Previous",
+                            contentDescription = null,
                             tint = Color.White.copy(alpha = 0.8f),
                             modifier = Modifier.size(20.dp)
                         )
@@ -160,24 +177,35 @@ fun MediaGlanceWidget(
 
                     Box(
                         modifier = Modifier
-                            .size(42.dp)
+                            .size(48.dp)
                             .clip(CircleShape)
                             .background(Color(0xFF8B5CF6))
-                            .clickable(onClick = onTogglePlay),
+                            .testTag("media_play_pause_control")
+                            .semantics { contentDescription = playPauseLabel }
+                            .clickable(
+                                role = Role.Button,
+                                onClick = onTogglePlay
+                            ),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector = if (isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
-                            contentDescription = if (isPlaying) "Pause" else "Play",
+                            contentDescription = null,
                             tint = Color.White,
                             modifier = Modifier.size(24.dp)
                         )
                     }
 
-                    IconButton(onClick = onTogglePlay, modifier = Modifier.size(36.dp)) {
+                    IconButton(
+                        onClick = onTogglePlay,
+                        modifier = Modifier
+                            .size(48.dp)
+                            .testTag("media_next_control")
+                            .semantics { contentDescription = playPauseLabel }
+                    ) {
                         Icon(
                             imageVector = Icons.Rounded.SkipNext,
-                            contentDescription = "Next",
+                            contentDescription = null,
                             tint = Color.White.copy(alpha = 0.8f),
                             modifier = Modifier.size(20.dp)
                         )
@@ -193,11 +221,16 @@ fun WellbeingGlanceWidget(
     modifier: Modifier = Modifier,
     onOpenSettings: () -> Unit
 ) {
+    val openSettingsLabel = stringResource(R.string.a11y_open_wellbeing_settings)
     LuminousSurface(
         modifier = modifier
             .fillMaxWidth()
             .testTag("wellbeing_glance_widget")
-            .clickable(onClick = onOpenSettings),
+            .semantics(mergeDescendants = true) {
+                role = Role.Button
+                contentDescription = openSettingsLabel
+            }
+            .clickable(role = Role.Button, onClick = onOpenSettings),
         shape = RoundedCornerShape(26.dp),
         backgroundColor = Color(0xFF0F231D).copy(alpha = 0.55f),
         borderColor = Color(0xFF10B981).copy(alpha = 0.35f)
