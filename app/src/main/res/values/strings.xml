@@ -21,10 +21,8 @@
     <string name="a11y_battery_charging">Battery %1$d percent, charging</string>
     <string name="a11y_launch_app">Launch %1$s</string>
     <string name="a11y_open_folder">Open folder %1$s</string>
-    <string name="a11y_previous_track">Previous track</string>
     <string name="a11y_play">Play</string>
     <string name="a11y_pause">Pause</string>
-    <string name="a11y_next_track">Next track</string>
     <string name="a11y_open_wellbeing_settings">Open wellbeing settings</string>
     <string name="a11y_living_flow_principles">Open Living Flow principles</string>
 </resources>
