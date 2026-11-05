@@ -59,6 +59,14 @@ If the expected branch or repository state differs, stop and report the discrepa
 - Handle expected Android failures with safe return values; do not crash the launcher.
 - Do not swallow exceptions without a documented reason.
 
+## 4A. Coroutines and predictable state
+
+- Use structured concurrency and tie coroutine work to the owning lifecycle.
+- Never swallow `CancellationException`; rethrow it or allow cancellation to propagate.
+- Use `StateFlow` for observable ViewModel UI state and expose immutable state to consumers.
+- Inject coroutine dispatchers where doing so improves testability; do not hard-code dispatchers in test-sensitive business logic.
+- Avoid uncontrolled `launch` calls and keep coroutine tests deterministic with injected test dispatchers.
+
 ## 5. Material 3 and Living Flow design
 
 - Use Material 3 components and the existing `AlbkestrelTheme`.
@@ -70,6 +78,7 @@ If the expected branch or repository state differs, stop and report the discrepa
 - Respect haptics settings.
 - Do not add decorative motion that ignores the user's accessibility preferences.
 - Maintain contrast on translucent surfaces.
+- Support responsive 4-column and 5-column app grids where the available width permits.
 - Verify layouts at different font scales and screen widths.
 - Provide meaningful content descriptions and semantic actions.
 
@@ -137,7 +146,8 @@ If the expected branch or repository state differs, stop and report the discrepa
 
 - Add or update unit tests for pure policy, search, mapping, ViewModel state, and repository logic.
 - Use fakes or in-memory Room rather than real user data.
-- Use coroutine test dispatchers for suspending code.
+- Use coroutine test dispatchers for suspending code; inject dispatchers where appropriate.
+- Run targeted tests first, then run the complete unit test suite before declaring the task complete.
 - Use Robolectric only where Android framework behavior is required.
 - A bug fix should include a regression test when practical.
 - Do not weaken or delete a test to make a change pass.
